@@ -75,7 +75,13 @@ def calculate_empty_time_up_to_tag(empty_intervals, tag):
     index = bisect_left(empty_intervals, (tag, float('inf'), float('inf')))
     if index == 0:
         return 0.0
-    return empty_intervals[index-1][2] + (tag - empty_intervals[index-1][0])
+
+    if index < len(empty_intervals) and empty_intervals[index][0] <= tag <= empty_intervals[index][1]:
+        return empty_intervals[index][2] + (tag - empty_intervals[index][0])
+    else:
+        return empty_intervals[index][2]
+
+    # return empty_intervals[index-1][2] + (tag - empty_intervals[index-1][0])
 
 
 def save_empty_intervals_to_file(empty_intervals, trace_start_time, trace_end_time,base_time_nanoseconds, file_path):
