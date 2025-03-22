@@ -145,6 +145,7 @@ def main(trace_file, user_start_time, user_end_time, time_unit):
     conversion_factor = {
         's': 1e9,
         'ms': 1e6,
+        'us': 1e3,
         'ns': 1
     }
 
