@@ -36,7 +36,7 @@ def get_end_time(trace_data):
     return filtered_events[0].get("ts") if filtered_events else None
 
 def process_trace_events(trace_events):
-    return [(event["ts"], event["ts"] + event["dur"]) for event in trace_events if "ts" in event and "dur" in event]
+    return [(event["ts"], event["ts"] + event["dur"] * 1e3) for event in trace_events if "ts" in event and "dur" in event]
 
 def merge_intervals_and_find_empty(intervals, start_time, end_time):
     if not intervals:
