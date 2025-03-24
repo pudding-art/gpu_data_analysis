@@ -1,0 +1,18 @@
+(base) ➜  gpu_data_analysis git:(master) ✗ python3 gpu_analysis_v3.py -t localhost.localdomain_2211.1742279961007771072.pt.trace.json -s 1742279952980136818 -e 1742279953060957040
+
+2025-03-24 16:59:02,208 - INFO - Empty intervals file not found: ./empty_intervals.json. Will compute from scratch.
+time : 80820222
+2025-03-24 16:59:11,332 - INFO - Total GPU idle time: 13815790.0 ns
+2025-03-24 16:59:11,332 - INFO - GPU idle percentage: 0.18%
+2025-03-24 16:59:11,332 - INFO - GPU idle percentage1: 17.09%
+
+
+(base) ➜  gpu_data_analysis git:(master) ✗ python3 gpu_analysis_v3.py -t localhost.localdomain_2211.1742279961007771072.pt.trace.json -s 1742279952980136818 -e 1742279953060957040
+
+2025-03-24 17:02:23,191 - INFO - Empty intervals file not found: ./empty_intervals.json. Will compute from scratch.
+user_start_time_ns: 6647592980136704.0
+trace_start_time_ns: 6647591887935008.0
+trace_end_time_ns: 6647598098740128.0
+2025-03-24 17:02:32,002 - INFO - Total GPU idle time: 13815790.0 ns
+2025-03-24 17:02:32,002 - INFO - GPU idle percentage: 0.22%
+2025-03-24 17:02:32,002 - INFO - GPU idle percentage1: 17.09%
