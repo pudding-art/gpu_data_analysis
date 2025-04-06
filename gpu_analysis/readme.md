@@ -342,6 +342,7 @@ Linux的pstree中看不到0进程，0进程创建完1进程变成idle进程
 ![img_19.png](img_19.png)
 
 复杂代码简单化！
+![img_20.png](img_20.png)
 
 
 ### 进程调度算法
