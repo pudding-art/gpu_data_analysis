@@ -19,3 +19,6 @@ https://www.cnblogs.com/linhaostudy/p/16908978.html
 raw tracepoint机制介绍
 https://blog.spoock.com/2023/08/17/eBPF-rawtracepoint/
 “通过查看 /sys/kernel/debug/tracing/events/raw_syscalls 目录，可以获取系统中所有可用的 raw_tracepoint 的列表。”
+
+ebpf-libbpf学习路径分享
+https://www.bilibili.com/video/BV1xt421W7vp/?spm_id_from=333.999.0.0&vd_source=86aaf5da058fa1cf43db8f76beca9bc3
