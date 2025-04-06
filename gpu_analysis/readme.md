@@ -261,6 +261,88 @@ Operating Systems:Three Easy Pieces https://pages.cs.wisc.edu/~remzi/OSTEP/
 - 进程的睡眠和等待队列
 - 孤儿进程的托孤，SUBREAPER
 
+ 
+fork()
+SIGCHLD
+执行一个copy，但是任何修改都造成分裂，如：chroot, open，写memory, mmap, sigaction信号绑定...
+都会导致资源分裂
+最不好分裂的是内存资源，需要写时分裂，所以需要一个机制来记录现在在访问哪部分内存
+![img_11.png](img_11.png)
+copy-on-write(COW)
+page-fault重新申请一块内存，两个进程的虚拟地址指向的是完全不同的两个物理地址，每个进程的虚拟地址都是独立的，严重依赖于mmu(memory management unit)。
+如果CPU里没有mmu就没办法fork
+![img_8.png](img_8.png)
+mmu-less linux 也就是原来的uclinux
+没有copy-on-write, 就没有fork
+
+使用vfork：父进程阻塞直到子进程
+- exit()
+- exec()
+
+vfork()
+- CLONE_VM
+- CLONE_VFORK
+- SIGCHILD 
+
+![img_9.png](img_9.png)
+
+再进一步放大，当使用pthread_create创建线程时，本质上是去调用Linux的clone函数，这个时候会要求将P2各种资源的指针全部都指向P1
+
+
+![img_10.png](img_10.png)
+
+虽然P1和P2基本上都共享了资源，但是在内部都是task_struct类型，这样就完全满足了操作系统中对线程的定义，即共享资源可调度。
+Linux中就是使用这种方式创建线程的。LWP(Light weight process)轻量级进程
+
+Linux很灵活，可以制定哪些指针指向一样的，哪些指向不一样的拷贝一份，位掩码CLONE_FLAG来选择。
+介于进程和线程之间的状态
+ 
+进程no共享，线程共享全部，其他在中间态
+![img_12.png](img_12.png)
+ 在用户空间getpid得到的是TGID，但是也有方法拿到内核空间的PID
+getpid
+gettid
+pthread_self
+![img_13.png](img_13.png)
+top中看到的是TGID
+top命令还有另外一个视角top -H是线程视角
+Linux具有极大的欺骗性
+![img_14.png](img_14.png)
+进程的托孤
+```c
+/**/
+if(prctl(PR_SET_CHILD_SUBREAPER,1) < 0){
+    log_warning("Failed to make us a subreaper:%m");
+    if(errno == EINVAL)
+        log_info("Perheps the kernel version is too old ( < 3.4?)")
+}
+```
+PR_SET_CHILD_SUBREAPER是Linux3.4加入的新特性，把它设置为非零值，当前进程就会变成subreaper,会像1号进程那样收养孤儿进程。
+
+一个进程可以把自己，通过一个系统调用prctl(PR_SET_CHILD_SUBREAPER,1)把自己声明为subreaper，如果没有subreaper，就会到init
+
+![img_15.png](img_15.png)
+![img_16.png](img_16.png)
+
+睡眠是如何实现的？
+![img_17.png](img_17.png)
+最主要依赖于等待队列结构，类似设计模式的等待中间消息的订阅媒介，将等待资源的进程都放在同一个队列上，当资源可用时，不去唤醒每一个进程，
+而是去唤醒等待队列，再由进程自己醒。
+![img_18.png](img_18.png)
+globalfifo.c的代码要看懂，每一行都要看都要看懂，尤其是global_fifo_read和global_fifo_write
+
+
+```shell
+cd /proc/
+cd 1
+sudo cat status
+```
+Linux的pstree中看不到0进程，0进程创建完1进程变成idle进程
+唤醒的任何一个进程都比0进程厉害，所有进程都睡眠0进程才运行，将CPU变成低功耗
+![img_19.png](img_19.png)
+
+复杂代码简单化！
+
 
 ### 进程调度算法
 
