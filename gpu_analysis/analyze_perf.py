@@ -94,6 +94,13 @@ def intersect_intervals(interval1: Tuple[float, float], interval2: Tuple[float, 
     return None
 
 
+def calculate_equal_json_time(time):
+    # perf.log 里的时间戳 * 1000000000 +  offset(暂定为 1741678240727699640) =  json 里的 baseTimeNanoseconds ：1735632360000000000  + ts 时间戳 * 1000
+    basetime_nanoseconds = 1735632360000000000
+    offset = 1741678240727699640
+    json_time = (time * 1e9 + (offset - basetime_nanoseconds)) / 1e3
+    return json_time
+
 def parse_perf_log(log_file, target_pids=None, config = CONFIG):
     """
     Parses the perf log file and generates state intervals.
@@ -278,10 +285,10 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
     json_output = []
     print(f"Converting {len(intervals)} intervals to JSON format...")
     for interval in intervals:
-        # start_us = int(interval['start'] * 1_000_000)
-        # end_us = int(interval['end'] * 1_000_000)
-        start_us = interval['start'] / 1000.0
-        end_us = interval['end'] / 1000.0
+        # start_us = interval['start'] / 1000.0
+        # end_us = interval['end'] / 1000.0
+        start_us = calculate_equal_json_time(interval['start'])
+        end_us = calculate_equal_json_time(interval['end'])
         duration_us = end_us - start_us
 
         if duration_us <= 0:  # Skip zero or negative duration intervals
