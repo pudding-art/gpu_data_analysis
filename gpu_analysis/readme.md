@@ -344,6 +344,177 @@ Linux的pstree中看不到0进程，0进程创建完1进程变成idle进程
 复杂代码简单化！
 ![img_20.png](img_20.png)
 
+打印结果是10，20，10，应为fork()创建了一个完全独立的进程，对拷父进程的task_struct，同时，在对data进行写入的同时，内存空间分裂，
+形成两个完全不一样的内存空间，同一虚拟地址指向完全不同的两个物理地址空间。
+```c
+#include <sched.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int data = 10;
+
+int child_process()
+{
+	printf("Child process %d, data %d\n",getpid(),data);
+	data = 20;
+	printf("Child process %d, data %d\n",getpid(),data);
+	_exit(0);
+}
+
+int main(int argc, char* argv[])
+{
+	int pid;
+	pid = fork();
+
+	if(pid==0) {
+		child_process();
+	}
+	else{
+		sleep(1);
+		printf("Parent process %d, data %d\n",getpid(), data);
+		exit(0);
+	}
+}
+
+```
+
+执行的是vfork，父进程被阻塞，子进程先执行打印出10和20，而后子进程退出，父进程继续运行，父子进程指向同一块内存空间，所以父进程输出20
+```c
+#include <stdio.h>
+#include <sched.h>
+#include <unistd.h>
+
+int data = 10;
+
+int child_process()
+{
+	printf("Child process %d, data %d\n",getpid(),data);
+	data = 20;
+	printf("Child process %d, data %d\n",getpid(),data);
+	_exit(0);
+}
+
+int main(int argc, char* argv[])
+{
+	if(vfork()==0) {
+		child_process();	
+	}
+	else{
+		sleep(1);
+		printf("Parent process %d, data %d\n",getpid(), data);
+	}
+}
+```
+编译gcc thread.c -pthread,用strace ./a.out跟踪其对clone()的调用。-pthread 是一个编译选项，用于启用对 POSIX 线程（POSIX Threads，简称 Pthreads）的支持。这个选项告诉编译器链接到线程库，并启用与线程相关的功能。
+-pthread 的作用
+- 启用线程库：-pthread 选项告诉编译器链接到线程库（通常是 libpthread）。这个库提供了创建和管理线程的函数，如 pthread_create、pthread_join 等。
+- 启用线程安全功能：编译器会启用一些线程安全的功能，例如：
+
+  - 线程安全的全局变量：某些全局变量（如 errno）会变成线程局部存储（Thread-Local Storage, TLS），以避免线程之间的冲突。
+  - 线程安全的库函数：某些标准库函数会启用线程安全的实现。
+  
+解释 clone() 调用
+- child_stack：子线程的栈空间。如果为 NULL，则由内核分配。
+- flags：指定线程的属性，例如：
+  - CLONE_VM：与父线程共享内存空间。
+  - CLONE_FS：与父线程共享文件系统信息。 
+  - CLONE_FILES：与父线程共享文件描述符。 
+  - CLONE_SIGHAND：与父线程共享信号处理。 
+  - CLONE_DETACHED：线程在退出时不会变成僵尸状态。 
+  - CLONE_CHILD_CLEARTID：在子线程退出时清除 parent_tidptr 指向的值。
+- parent_tidptr：父线程的线程 ID 存储位置。
+- tls：线程局部存储（Thread-Local Storage）的指针
+```c
+#include <stdio.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <linux/unistd.h>
+#include <sys/syscall.h>
+
+static pid_t gettid( void )
+{
+	return syscall(__NR_gettid);
+}
+
+static void *thread_fun(void *param)
+{
+	printf("thread pid:%d, tid:%d pthread_self:%lu\n", getpid(), gettid(),pthread_self());
+	while(1);
+	return NULL;
+}
+
+int main(void)
+{
+	pthread_t tid1, tid2;
+	int ret;
+
+	printf("thread pid:%d, tid:%d pthread_self:%lu\n", getpid(), gettid(),pthread_self());
+
+	ret = pthread_create(&tid1, NULL, thread_fun, NULL);
+	if (ret == -1) {
+		perror("cannot create new thread");
+		return -1;
+	}
+
+	ret = pthread_create(&tid2, NULL, thread_fun, NULL);
+	if (ret == -1) {
+		perror("cannot create new thread");
+		return -1;
+	}
+
+	if (pthread_join(tid1, NULL) != 0) {
+		perror("call pthread_join function fail");
+		return -1;
+	}
+
+	if (pthread_join(tid2, NULL) != 0) {
+		perror("call pthread_join function fail");
+		return -1;
+	}
+
+	return 0;
+}
+```
+
+编译运行life_period.c，杀死父进程，用pstree命令观察子进程的被托孤
+```c
+#include <stdio.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(void)
+{
+	pid_t pid,wait_pid;
+	int status;
+
+	pid = fork();
+
+	if (pid==-1)	{
+		perror("Cannot create new process");
+		exit(1);
+	} else 	if (pid==0) {
+		printf("child process id: %ld\n", (long) getpid());
+		pause();
+		_exit(0);
+	} else {
+		printf("parent process id: %ld\n", (long) getpid());
+		wait_pid=waitpid(pid, &status, WUNTRACED | WCONTINUED);
+		if (wait_pid == -1) {
+			perror("cannot using waitpid function");
+			exit(1);
+		}
+
+		if(WIFSIGNALED(status))
+			printf("child process is killed by signal %d\n", WTERMSIG(status));
+
+		exit(0);
+	}
+}
+```
+
+仔细阅读globalfifo.c的global_read()、globalfifo_write()函数，理解等待队列
 
 ### 进程调度算法
 

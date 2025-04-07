@@ -9,6 +9,7 @@ from typing import List, Dict, Set,Tuple, Optional
 CONFIG = {
     "line_regex": r'^\s*(.+?)\s+(\d+)\s+\[(\d+)\]\s+([\d\.]+):\s+(\S+):\s+(.*)$',
     "sched_switch_regex": r'prev_comm=(.+)\s+prev_pid=(\d+)\s+prev_prio=(\d+)\s+prev_state=(\S+)\s+==>\s+next_comm=(.+)\s+next_pid=(\d+)\s+next_prio=(\d+)',
+    "sched_wakeup_regex": r'comm=(.+) pid=(\d+) prio=(\d+) target_cpu=(\d+)',
     "syscall_regex": r'(sys_enter|sys_exit):\s+NR\s+\d+\s+\(.*\)',
     "output_format": "json"
 }
@@ -19,6 +20,7 @@ class EventParser:
         self.line_re = re.compile(config["line_regex"])
         self.switch_re = re.compile(config["sched_switch_regex"])
         self.syscall_re = re.compile(config["syscall_regex"])
+        self.wakeup_re = re.compile(config["sched_wakeup_regex"])
 
     def parse_line(self, line: str, line_num) -> Optional[Dict]:
         match = self.line_re.match(line)
@@ -30,7 +32,8 @@ class EventParser:
         try:
             pid = int(pid_str)
             cpu = int(cpu_str)
-            timestamp = float(ts_str)
+            timestamp = float(ts_str) * 1e9 # expand
+            # timestamp = float(ts_str)
         except ValueError:
             print(f"Warning: Skipping line {line_num + 1} due to parsing error: {line.strip()}")
             return None
@@ -75,12 +78,31 @@ class EventParser:
         }
 
 
+    def parse_sched_wakeup(self, details:str, line_num):
+        match = self.wakeup_re.match(details)
+        if not match:
+            print(f"Warning: Skipping malformed wakeup line{line_num + 1}:{details.strip()}")
+            return None
+
+        comm, pid, prio, target_cpu = match.groups()
+        try:
+            pid = int(pid)
+        except ValueError:
+            return None
+        return {
+            "comm": comm,
+            "pid": pid,
+            "target_cpu": target_cpu
+        }
+
 # Mapping from kernel state to our simplified states
 def get_state_after_switch(prev_state_str):
     """Determines if the process is ready ('preempt') or non-ready ('sleep') after being switched out."""
     # R = Running or Runnable, R+ = Runnable + Wake Preempt (Linux 5.14+)
     if 'R' in prev_state_str:
         return 'preempt'  # Ready but waiting for CPU
+    elif "wakeup" in prev_state_str:
+        return 'preempt'
     else:
         # S = Interruptible Sleep, D = Uninterruptible Disk Sleep, T = Stopped, etc.
         return 'sleep'  # Non-ready (waiting for I/O, timer, lock, etc.)
@@ -98,7 +120,8 @@ def calculate_equal_json_time(time):
     # perf.log 里的时间戳 * 1000000000 +  offset(暂定为 1741678240727699640) =  json 里的 baseTimeNanoseconds ：1735632360000000000  + ts 时间戳 * 1000
     basetime_nanoseconds = 1735632360000000000
     offset = 1741678240727699640
-    json_time = (time * 1e9 + (offset - basetime_nanoseconds)) / 1e3
+    # json_time = (time * 1e9 + (offset - basetime_nanoseconds)) / 1e3
+    json_time = (time + offset - basetime_nanoseconds) / 1e3
     return json_time
 
 def parse_perf_log(log_file, target_pids=None, config = CONFIG):
@@ -123,7 +146,7 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
     if target_pids:
         print(f"Focusing on PIDs: {target_pids}")
 
-
+    count = 1
     with open(log_file, 'r') as f:
         for line_num, line in enumerate(f):
             # match = line_re.match(line)
@@ -139,9 +162,11 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
             timestamp = event['timestamp']
             event_name = event['event_name']
 
+
             # Update overall time range
             min_ts = min(min_ts, timestamp)
             max_ts = max(max_ts, timestamp)
+
 
             # --- Core Logic: Process sched_switch ---
             if event_name == 'sched:sched_switch':
@@ -151,10 +176,8 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
                     # print(f"Warning: Skipping malformed sched_switch line {line_num + 1}: {event['details'].strip()}")
                     continue
 
-
                 prev_pid = switch_event['prev_pid']
                 next_pid = switch_event['next_pid']
-
                 # --- Handle Previous Process ---
                 # Should we track this process?
                 if target_pids is None or prev_pid in target_pids:
@@ -164,15 +187,15 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
                         if prev_event['state'] == 'running':  # Should always be true if tracked correctly
                             start_time = prev_event['last_timestamp']
                             duration = timestamp - start_time
-                            if duration > 0:  # Avoid zero-duration intervals
+                            if duration > 1e-9:  # Avoid zero-duration intervals
                                 intervals.append({
                                     'pid': prev_pid,
                                     'start': start_time,
                                     'end': timestamp,
                                     'state': 'running'
                                 })
-                        # else: Record unexpected previous state if needed for debugging
-                        #    print(f"Debug: prev_pid {prev_pid} was in state {prev_event['state']} before switch at {timestamp}")
+                        else: # Record unexpected previous state if needed for debugging
+                           print(f"Debug: prev_pid {prev_pid} was in state {prev_event['state']} before switch at {timestamp}")
 
                         # Update state to off-cpu (preempt or sleep)
                         new_state = get_state_after_switch(switch_event['prev_state'])
@@ -189,7 +212,7 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
                         # new_state = get_state_after_switch(prev_state)
                         # process_states[prev_pid] = {'state': new_state, 'last_timestamp': timestamp, 'cpu': -1}
                         # print(f"Info: prev_pid {prev_pid} seen for first time switching out at {timestamp}, state set to {new_state}")
-                        pass  # Let's only track state changes robustly after a process has been 'next_pid'
+                        # pass  # Let's only track state changes robustly after a process has been 'next_pid'
 
                 # --- Handle Next Process ---
                 # Should we track this process?
@@ -201,16 +224,26 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
                         if old_state in ['preempt', 'sleep']:  # Should be one of these
                             start_time = prev_event['last_timestamp']
                             duration = timestamp - start_time
-                            if duration > 0:
+                            if duration > 1e-9:
                                 intervals.append({
                                     'pid': next_pid,
                                     'start': start_time,
                                     'end': timestamp,
                                     'state': old_state
                                 })
+                        elif old_state == "wakeup":
+                            start_time = prev_event['last_timestamp']
+                            duration = timestamp - start_time
+                            if duration > 1e-9:
+                                intervals.append({
+                                    'pid': next_pid,
+                                    'start': start_time,
+                                    'end': timestamp,
+                                    'state': 'preempt'
+                                })
                             # else: # It might have been running on another CPU, which is complex without per-CPU tracking
                             # print(f"Debug: next_pid {next_pid} switched in at {timestamp}, but previous state was {old_state}")
-                            pass
+                            # pass
 
                         # Update state to running
                         process_states[next_pid] = {'state': 'running', 'last_timestamp': timestamp, 'cpu': event['cpu']}
@@ -220,6 +253,36 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
                         # Initialize its state as running from now
                         process_states[next_pid] = {'state': 'running', 'last_timestamp': timestamp, 'cpu': event['cpu']}
                         # print(f"Info: next_pid {next_pid} seen for first time switching in at {timestamp}")
+
+            # 处理sleep后，wakeup到running之间的preempt状态
+            elif event_name == 'sched:sched_wakeup':
+                wakeup_event = parser.parse_sched_wakeup(event['details'], line_num)
+                if not wakeup_event:
+                    continue
+
+                pid = wakeup_event['pid']
+
+                if target_pids is None or pid in target_pids:
+                    # 先改wakeup到prev的状态并且insert到intervals
+                    # 然后再处理wakeup到running的只需要将wakeup状态保存下来的部分
+                    if pid in process_states:
+                        prev_event = process_states[pid]
+                        old_state = prev_event['state']
+                        if old_state == 'sleep':
+                            start_time = prev_event['last_timestamp']
+                            duration = timestamp - start_time
+                            if duration > 1e-9:
+                                intervals.append({
+                                    'pid':pid,
+                                    'start':start_time,
+                                    'end':timestamp,
+                                    'state':'sleep'
+                                })
+
+                        process_states[pid]['state'] = 'wakeup'
+                        process_states[pid]['last_timestamp'] = timestamp
+                    else:
+                        process_states[pid] = {'state': 'wakeup', 'last_timestamp': timestamp, 'cpu':event['cpu']}
 
 
             elif event_name == 'raw_syscalls:sys_enter':
@@ -237,7 +300,7 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
 
 
 
-    print(f"Finished processing log file. Total time range: {min_ts:.6f}s to {max_ts:.6f}s")
+    print(f"Finished processing log file. Total time range: {min_ts:.3f}s to {max_ts:.3f}s")
 
     # --- Finalize Intervals ---
     # At the end of the log, any process still 'running' or 'off-cpu' needs its final interval closed
@@ -285,11 +348,9 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
     json_output = []
     print(f"Converting {len(intervals)} intervals to JSON format...")
     for interval in intervals:
-        # start_us = interval['start'] / 1000.0
-        # end_us = interval['end'] / 1000.0
+        duration_us = (interval['end'] - interval['start']) / 1e3
         start_us = calculate_equal_json_time(interval['start'])
-        end_us = calculate_equal_json_time(interval['end'])
-        duration_us = end_us - start_us
+        # end_us = calculate_equal_json_time(interval['end'])
 
         if duration_us <= 0:  # Skip zero or negative duration intervals
             # print(f"Skipping zero/negative duration interval for PID {interval['pid']}: start={interval['start']:.9f}, end={interval['end']:.9f}")
