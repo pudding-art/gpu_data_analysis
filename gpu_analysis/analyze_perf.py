@@ -32,8 +32,8 @@ class EventParser:
         try:
             pid = int(pid_str)
             cpu = int(cpu_str)
-            timestamp = float(ts_str) * 1e9 # expand
-            # timestamp = float(ts_str)
+            timestamp = int(float(ts_str) * 1e9)
+
         except ValueError:
             print(f"Warning: Skipping line {line_num + 1} due to parsing error: {line.strip()}")
             return None
@@ -108,7 +108,7 @@ def get_state_after_switch(prev_state_str):
         return 'sleep'  # Non-ready (waiting for I/O, timer, lock, etc.)
 
 
-def intersect_intervals(interval1: Tuple[float, float], interval2: Tuple[float, float]) -> Optional[Tuple[float, float]]:
+def intersect_intervals(interval1: Tuple[int, int], interval2: Tuple[int, int]) -> Optional[Tuple[int, int]]:
     start = max(interval1[0], interval2[0])
     end = min(interval1[1], interval2[1])
     if start < end:
@@ -166,7 +166,6 @@ def parse_perf_log(log_file, target_pids=None, config = CONFIG):
             # Update overall time range
             min_ts = min(min_ts, timestamp)
             max_ts = max(max_ts, timestamp)
-
 
             # --- Core Logic: Process sched_switch ---
             if event_name == 'sched:sched_switch':
