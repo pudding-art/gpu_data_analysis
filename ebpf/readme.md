@@ -46,5 +46,10 @@ bootstrap.bpf.c
 
 
 ## 参考
-libbpf学习路径分享
+1. libbpf学习路径分享
 https://www.bilibili.com/video/BV1xt421W7vp/?spm_id_from=333.1007.top_right_bar_window_history.content.click
+2. eBPF Documentary
+https://ebpf.io/zh-hans/what-is-ebpf/
+3. eBPF介绍 https://coolshell.cn/articles/22320.html
+4. libbpf-bootstrap https://github.com/libbpf/libbpf-bootstrap
+
