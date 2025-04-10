@@ -517,13 +517,99 @@ int main(void)
 仔细阅读globalfifo.c的global_read()、globalfifo_write()函数，理解等待队列
 
 ### 进程调度算法
-
+为什么现在的调度器要这样设计？
 - CPU/IO消耗型进程
-- 吞吐率 vs. 响应
+- 吞吐率 vs. 响应（调度器设计的两个目标）
 - SCHED_FIFO、SCHED_RR
 - SCHED_NORMAL和CFS
 - nice、renice
 - chrt
+
+两个目标只有一个吞吐率或者响应。响应，最小化某个任务的响应时间，哪怕牺牲其他的任务为代价；吞吐，全局视野，整个系统的workload被最大化处理
+某些任务响应要快。实时操作系统，高优先级一ready就会抢占掉低优先级的进程，越快越好。抢占本身会导致吞吐率的下降。 因为抢占并没有都把时间花在有用功上，
+把一部分时间花在了上下文切换，但是实际上切换时间比较短。
+
+测算上下文切换对操作系统影响时，不去理解上下文切换本身，因为上下文切换会引起很多的cache miss.
+所以真正去测算时还要去测算引起的cache miss对吞吐率的影响。
+
+Linux是在吞吐和响应之间找到一种平衡的系统。
+
+```shell
+make arch=ARM menuconfig
+kernel features -> Preemption Model (No Forced Preemption (Server)) # 选择Linux内核的抢占模型
+# 该抢占模型的选择会影响Linux中的调度算法
+
+```
+![img_21.png](img_21.png)
+
+调度器的另一个输入是运行的进程类型。计算机中运行的进程非常典型的氛围IO消耗型和CPU消耗型。
+IO bound：CPU利用率低，进程的运行效率主要受限于IO速度，CPU一定要**及时**调度，及时拿到CPU不管这个CPU是啥样的好或不好。（big.LITTLE 大小核，计算型在CPU大核，IO在CPU小核）
+CPU bound：多数时间花在CPU上面（做运算） 
+IO消耗型任务比CPU消耗型的优先级要高。
+
+任何事物都要知道为什么要这样做？
+
+内核空间数字越小优先级越高，但是在用户空间设置为40，对应内核空间是用99-40=59的优先级
+0-99是RT100-139是非RT的（实时和非实时）
+![img_22.png](img_22.png)
+看哪个上面最先有ready置1
+
+早期调度策略
+![img_23.png](img_23.png)
+
+![img_24.png](img_24.png)
+所有的SCHED_FIFO和SCHED_RR都睡眠之后再跑100～139之间的普通进程
+
+nice值，-20代表100，19代表139
+
+- 在不同优先级轮转
+- 根据睡眠情况，动态奖励和惩罚（静态nice值写好之后，Linux内核会根据实际情况进行调整，越睡越奖励，越干活越惩罚）—— 反卷斗士
+优先级高的优势是：1. 时间片可能会多一些 2. 抢占
+nice越低优先级越高但是并不是具有绝对优势
+
+目的是为了让IO消耗型的任务竞争过CPU消耗型的任务
+
+
+rt门限
+在period的时间里RT最多只能跑runtime的时间
+```shell
+/proc/sys/kernel/sched_rt_period_us
+/proc/sys/kernel/sched_rt_runtime_us
+```
+如果不做这个设置RT的代码如果进入死循环，非RT的一点都跑不了。
+
+CFS：完全公平调度
+![img_25.png](img_25.png)
+![img_26.png](img_26.png)
+```shell
+sudo renice -n -5 -g 12839 # -g设置全部线程 -p只设置一个线程
+```
+普通进程之间是如何调度的
+![img_27.png](img_27.png)
+
+
+![img_28.png](img_28.png)
+
+![img_29.png](img_29.png)
+```shell
+# 设置SCHED_FIFO和50RT优先级
+chrt -f -a -p 50 10576
+# 设置nice
+renice -n -5 -g 9394
+nice -n 5 ./a.out
+```
+
+SCHED_NORMAL设置为用户进程，SCHED_FIFO为内核进程，优先级更高，但运行时间是95/100，所以CPU利用率会下降但是系统运行速度，如鼠标点击等操作会变慢。
+把进程设置为RT了
+
+nice的设置是以线程为单位的
+
+运行2个高CPU利用率的进程，调整他们的nice；
+用chrt把一个死循环进程调整为SCHED_FIFO；
+阅读ARM的big.LITTLE架构资料，并论述ARM为什么要这么做
+
+主要是针对都ready的线程如何调度
+
 
 ### Linux下多CPU的负载均衡
 - 多核下负载均衡
@@ -532,6 +618,98 @@ int main(void)
 - Android和NEON对cgroups的采用
 - Linux为什么不是硬实时的
 - preempt-rt对Linux实时性的改造
+
+多个核或者多个超线程。
+每个核都跑一样的调度算法：FIFO, RR, NORMAL(CFS)以前是nice+-5奖励，现在用ptime/weight
+自动在多个核之间进行调度和负载均衡push, pull
+
+
+```shell
+time ./a.out
+# 评估一个进程user_space time, kernel_space time, realworld time
+# ctrl+c 看时间
+```
+![img_30.png](img_30.png)
+
+rt更强调实时性而非负载均衡
+![img_31.png](img_31.png)
+
+![img_32.png](img_32.png)
+```shell
+taskset -a -p 01 19999
+# -a 全部 -p 设置CPU亲和性 19999 pid
+```
+  
+![img_33.png](img_33.png)
+
+CPU0发出的软中断都是运行在CPU0上，但是CPU0会将软中断派发到其他核上去。
+
+![img_34.png](img_34.png)
+分群调度，群与群之间按照之前的调度算法调度，群内部再按照调度算法去调。
+
+```shell
+fg 
+# 将后台作业（在后台运行的或者在后台挂起的作业）放到前台终端运行。若后台任务只有一个，则使用该命令时，可以省略任务号。
+cd /sys/fs/cgroup
+./cgroup.procs # 加进程
+./cgroup.tasks # 加线程
+sudo sh -c 'echo 20752 > cgroup.procs'
+sudo sh -c 'echo 20752 > cgroup.tasks'
+```
+![img_35.png](img_35.png)
+
+![img_36.png](img_36.png)
+
+
+自动根据ID创建cgroup
+![img_37.png](img_37.png)
+
+硬实时与软实时之间最关键的差别在于，软实时只能提供统计意义上的实时。比如95%的情况下都会确保在规定的时间內完成某个工作。
+超过了时间也没有甚么很严重的惩罚。要不要实时是由应用程序决定的。
+
+调度抖动
+![img_38.png](img_38.png)
+
+记不可以调度的时机，RT patch将区块不可调度系统变成线性
+![img_39.png](img_39.png)
+
+四类区间：
+- 中断（即使中断中唤醒了一个高优先级的RT也不能调度）
+- 软中断（软中断里可以有中断，但是中断之后不能再中断，Linux2.3.2之后完全不允许中断再嵌套了，软中断中唤醒一个RT也不可以调度）
+- 进程上下文
+  - spin_lock（拿到spin_lock之后调度器就会关闭，spin_lock必须等待解锁之后，才能抢占）
+  - 可调度的进程上下文（只有这个可以调度，发生可以抢占的区间立即抢占）
+
+![img_40.png](img_40.png)
+T3到T6自己写的，具有不确定性，所以不是硬实时。
+![img_41.png](img_41.png)
+
+mutex 被T2拿到T1会睡眠等T2释放；
+自旋发生在两个核之间
+spinlock CPU0拿到了，CPU1拿不到一直在忙等
+
+优先级继承已经merge到内核中了，优先级反转。优先级反转，是指在使用信号量时，可能会出现的这样一种不合理的现象，即：高优先级任务被低优先级任务阻塞，导致高优先级任务迟迟得不到调度
+中等优先级的进程一直在制约低优先级进程，导致一直被中等优先级抢占，花了很长时间才释放锁，导致高优先级等待时间很长
+
+优先级进程：将低优先级进程的优先级提高到和高优先级一样就不会受到中等优先级进程的影响，尽快处理其中内容后释放锁給真正的高优先级进程
+
+将中断程序放在线程中去做
+![img_43.png](img_43.png)
+中断软中断都变成了第四类区间，所以只有一个很短的时间不会调度，只有一个很短的中断服务程序不能调度，但是那个程序直接就返回了，因为原本的中断去线程里做了。
+这样就把Linux变成了实时中断系统。
+
+
+
+
+
+
+
+
+
+1. 用time命令跑1个含有2个死循环线程的进程
+2. 用taskset调整多线程依附的CPU
+3. 创建和分群CPU的cgroup,调整权重和quota
+4. cyclictest
 
 
 ## 最终结果
