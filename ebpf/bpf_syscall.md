@@ -716,18 +716,194 @@ union bpf_attr {
        __u32         insn_cnt;
        __aligned_u64 insns;      /* 'const struct bpf_insn *' */
        __aligned_u64 license;    /* 'const char *' */
-       __u32         log_level;  /* 验证器的详细级别 */
+       __u32         log_level;  /* 验证器的详细级别 */ //值为零表示验证器不会提供日志；在这种情况下，log_buf 必须是空指针，log_size 必须为零。
        __u32         log_size;   /* 用户缓冲区的大小 size of user buffer */
-       __aligned_u64 log_buf;    /* 用户提供的char*缓冲区 user supplied 'char *' buffer */
+       __aligned_u64 log_buf;    /* 用户提供的char*缓冲区 user supplied 'char *' buffer */ //指向调用者分配的缓冲区的指针，内核验证器可以将验证日志存储在此缓冲区中。验证日志是一个多行字符串，程序作者可以查看它以了解验证器如何得出 eBPF 程序不安全的结论。输出格式可能会随着验证器的演变而改变。
        __u32         kern_version;
                                  /* checked when prog_type=kprobe  (since Linux 4.1) */
    };
 } __attribute__((aligned(8)));
 ```
 ## eBPF programs
+eBPF映射的作用如下：
+1. 在eBPF程序之间共享数据。eBPF程序可以将处理事件（如 kprobe、网络数据包等）的结果存储到映射中。其他eBPF程序可以访问这些映射，从而实现数据共享。
+2. 在eBPF程序和用户空间程序之间交换数据。eBPF程序可以将数据存储到映射中，用户空间程序可以从中读取数据。用户空间程序可以将配置数据写入映射，eBPF程序可以读取这些配置数据并根据这些数据动态调整行为。
+
+用户空间代码：
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <linux/bpf.h>
+
+// 封装的 bpf_create_map 函数
+int bpf_create_map(enum bpf_map_type map_type,
+                   unsigned int key_size,
+                   unsigned int value_size,
+                   unsigned int max_entries)
+{
+    union bpf_attr attr = {
+        .map_type    = map_type,
+        .key_size    = key_size,
+        .value_size  = value_size,
+        .max_entries = max_entries
+    };
+
+    return syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
+}
+
+// 封装的 bpf_update_elem 函数
+int bpf_update_elem(int fd, const void *key, const void *value, uint64_t flags)
+{
+    union bpf_attr attr = {
+        .map_fd = fd,
+        .key    = ptr_to_u64(key),
+        .value  = ptr_to_u64(value),
+        .flags  = flags,
+    };
+
+    return syscall(SYS_bpf, BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
+}
+
+// 封装的 bpf_get_elem 函数
+int bpf_get_elem(int fd, const void *key, void *value)
+{
+    union bpf_attr attr = {
+        .map_fd = fd,
+        .key    = ptr_to_u64(key),
+        .value  = ptr_to_u64(value),
+    };
+
+    return syscall(SYS_bpf, BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr));
+}
+
+int main() {
+    int map_fd;
+    __u32 key = 0;
+    __u32 value = 1024; // 阈值
+    __u32 retrieved_value;
+
+    // 创建一个数组映射
+    map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(key), sizeof(value), 1);
+    if (map_fd < 0) {
+        perror("bpf_create_map failed");
+        return 1;
+    }
+
+    printf("eBPF array map created with file descriptor: %d\n", map_fd);
+
+    // 更新映射中的键值对
+    if (bpf_update_elem(map_fd, &key, &value, BPF_ANY) < 0) {
+        perror("bpf_update_elem failed");
+        close(map_fd);
+        return 1;
+    }
+
+    printf("Key-value pair updated in the map.\n");
+
+    // 获取映射中的值
+    if (bpf_get_elem(map_fd, &key, &retrieved_value) < 0) {
+        perror("bpf_get_elem failed");
+        close(map_fd);
+        return 1;
+    }
+
+    printf("Retrieved value: %u\n", retrieved_value);
+
+    // 关闭文件描述符
+    close(map_fd);
+    return 0;
+}
+```
+
+```c
+// eBPF 程序代码
+struct bpf_map_def SEC("maps") ip_count_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(__u64),
+    .max_entries = 1024,
+};
+
+SEC("socket")
+int count_ip(struct __sk_buff *skb) {
+    void *data = (void *)(long)skb->data;
+    void *data_end = (void *)(long)skb->data_end;
+    struct iphdr *ip = data + ETH_HLEN;
+
+    if (ip + 1 > data_end)
+        return TC_ACT_OK;
+
+    __u32 src_ip = ip->saddr;
+    __u64 *count;
+
+    count = bpf_map_lookup_elem(&ip_count_map, &src_ip);
+    if (count)
+        *count += 1;
+    else
+        bpf_map_update_elem(&ip_count_map, &src_ip, &one, BPF_ANY);
+
+    return TC_ACT_OK;
+}
+```
+
+```c
+// eBPF 程序代码
+struct bpf_map_def SEC("maps") config_map = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(__u32),
+    .max_entries = 1,
+};
+
+SEC("socket")
+int check_threshold(struct __sk_buff *skb) {
+    __u32 key = 0;
+    __u32 *threshold;
+
+    threshold = bpf_map_lookup_elem(&config_map, &key);
+    if (!threshold)
+        return TC_ACT_OK;
+
+    // 根据阈值调整行为
+    if (skb->len > *threshold)
+        return TC_ACT_SHOT; // 超过阈值，丢弃数据包
+    else
+        return TC_ACT_OK;   // 未超过阈值，正常处理
+}
+
+// eBPF 程序代码
+struct bpf_map_def SEC("maps") config_map = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(__u32),
+    .max_entries = 1,
+};
+
+SEC("socket")
+int check_threshold(struct __sk_buff *skb) {
+    __u32 key = 0;
+    __u32 *threshold;
+
+    threshold = bpf_map_lookup_elem(&config_map, &key);
+    if (!threshold)
+        return TC_ACT_OK;
+
+    // 根据阈值调整行为
+    if (skb->len > *threshold)
+        return TC_ACT_SHOT; // 超过阈值，丢弃数据包
+    else
+        return TC_ACT_OK;   // 未超过阈值，正常处理
+}
+
+
+```
 
 ### eBPF program types
-
+eBPF程序类型决定了以下两个主要方面：
+1. 可调用的内核辅助函数：每种类型的eBPF程序只能调用特定的内核辅助函数。
+2. 程序输入（上下文）：每种类型的eBPF程序接收的输入数据格式不同。
 ```c
 enum bpf_prog_type {
     BPF_PROG_TYPE_UNSPEC, /* Reserve 0 as invalid program type */
@@ -757,12 +933,260 @@ enum bpf_prog_type {
 };
 ```
 - BPF_PROG_TYPE_SOCKET_FILTER(since Linux 3.19)
-
+    - 可调用的内核辅助函数：
+        - `bpf_map_lookup_elem(map_fd, void *key)`：在指定的映射中查找键。
+        - `bpf_map_update_elem(map_fd, void *key, void *value)`：在指定的映射中更新键值对。
+        - `bpf_map_delete_elem(map_fd, void *key)`：在指定的映射中删除键。
+    - 程序输入（上下文）：
+        - 输入是一个指向`struct __sk_buff`的指针，表示网络数据包。
 - BPF_PROG_TYPE_KPROBE(since Linux 4.1)
+    - 程序输入（上下文）：输入是一组寄存器值，表示内核函数调用的上下文。
 - BPF_PROG_TYPE_SCHED_CLS(since Linux 4.1)
 - BPF_PROG_TYPE_SCHED_ACT(since Linux 4.1)
 ## events
+加载的程序可以附加到不同的事件上，不同的内核子系统提供了不同的方法来附加eBPF程序。
+
+自Linux 3.19起，可以使用`setsockopt`系统调用将eBPF程序附加到套接字上。具体步骤如下：
+1. 创建套接字：使用 socket(2) 系统调用创建一个套接字。
+2. 加载eBPF程序：使用BPF_PROG_LOAD命令加载eBPF程序，获取程序的文件描述prog_fd。
+3. 附加eBPF程序到套接字：使用setsockopt系统调用将 eBPF 程序附加到套接字上。
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <linux/bpf.h>
+
+#define LOG_BUF_SIZE 4096
+
+char bpf_log_buf[LOG_BUF_SIZE];
+
+int bpf_prog_load(enum bpf_prog_type type,
+                  const struct bpf_insn *insns, int insn_cnt,
+                  const char *license)
+{
+    union bpf_attr attr = {
+        .prog_type = type,
+        .insns     = ptr_to_u64(insns),
+        .insn_cnt  = insn_cnt,
+        .license   = ptr_to_u64(license),
+        .log_buf   = ptr_to_u64(bpf_log_buf),
+        .log_size  = LOG_BUF_SIZE,
+        .log_level = 1,
+    };
+
+    return syscall(SYS_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
+}
+
+int main() {
+    int sockfd, prog_fd;
+
+    // 创建一个套接字
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("socket creation failed");
+        return 1;
+    }
+
+    // 定义一个简单的 eBPF 程序
+    struct bpf_insn insns[] = {
+        BPF_MOV64_IMM(BPF_REG_0, 0), // 返回 0
+        BPF_EXIT_INSN(),
+    };
+
+    // 加载 eBPF 程序
+    prog_fd = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER, insns, ARRAY_SIZE(insns), "GPL");
+    if (prog_fd < 0) {
+        perror("bpf_prog_load failed");
+        close(sockfd);
+        return 1;
+    }
+
+    // 将 eBPF 程序附加到套接字
+    if (setsockopt(sockfd, SOL_SOCKET, SO_ATTACH_BPF, &prog_fd, sizeof(prog_fd)) < 0) {
+        perror("setsockopt failed");
+        close(sockfd);
+        close(prog_fd);
+        return 1;
+    }
+
+    printf("eBPF program attached to socket with file descriptor: %d\n", sockfd);
+
+    // 关闭文件描述符
+    close(sockfd);
+    close(prog_fd);
+    return 0;
+}
+```
+
+自Linux 4.1起，可以使用ioctl系统调用将eBPF程序附加到perf事件上。具体步骤如下：
+1. 创建perf事件文件描述符：使用`perf_event_open(2)`系统调用创建一个perf事件文件描述符。
+2. 加载eBPF程序：使用BPF_PROG_LOAD命令加载eBPF程序，获取程序的文件描述符 prog_fd。
+3. 附加eBPF程序到perf事件：使用ioctl系统调用将eBPF程序附加到perf事件上。
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/bpf.h>
+#include <linux/perf_event.h>
+
+#define LOG_BUF_SIZE 4096
+
+char bpf_log_buf[LOG_BUF_SIZE];
+
+int bpf_prog_load(enum bpf_prog_type type,
+                  const struct bpf_insn *insns, int insn_cnt,
+                  const char *license)
+{
+    union bpf_attr attr = {
+        .prog_type = type,
+        .insns     = ptr_to_u64(insns),
+        .insn_cnt  = insn_cnt,
+        .license   = ptr_to_u64(license),
+        .log_buf   = ptr_to_u64(bpf_log_buf),
+        .log_size  = LOG_BUF_SIZE,
+        .log_level = 1,
+    };
+
+    return syscall(SYS_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
+}
+
+int main() {
+    int event_fd, prog_fd;
+
+    // 创建一个 perf 事件文件描述符
+    event_fd = syscall(SYS_perf_event_open, &attr, 0, -1, -1, 0);
+    if (event_fd < 0) {
+        perror("perf_event_open failed");
+        return 1;
+    }
+
+    // 定义一个简单的 eBPF 程序
+    struct bpf_insn insns[] = {
+        BPF_MOV64_IMM(BPF_REG_0, 0), // 返回 0
+        BPF_EXIT_INSN(),
+    };
+
+    // 加载 eBPF 程序
+    prog_fd = bpf_prog_load(BPF_PROG_TYPE_PERF_EVENT, insns, ARRAY_SIZE(insns), "GPL");
+    if (prog_fd < 0) {
+        perror("bpf_prog_load failed");
+        close(event_fd);
+        return 1;
+    }
+
+    // 将 eBPF 程序附加到 perf 事件
+    if (ioctl(event_fd, PERF_EVENT_IOC_SET_BPF, prog_fd) < 0) {
+        perror("ioctl failed");
+        close(event_fd);
+        close(prog_fd);
+        return 1;
+    }
+
+    printf("eBPF program attached to perf event with file descriptor: %d\n", event_fd);
+
+    // 关闭文件描述符
+    close(event_fd);
+    close(prog_fd);
+    return 0;
+}
+```
 
 ## return value
+对于一次成功的调用, 返回值取决于操作。
+- BPF_MAP_CREATE: 返回与eBPF映射关联的文件描述符
+- BPF_PROG_LOAD: 返回与eBPF程序关联的文件描述符
+- 其他命令: 0
+如果发生错误就返回-1, errno设置为错误原因，错误原因如下：
+```c
+E2BIG  The eBPF program is too large or a map reached the 
+       max_entries limit (maximum number of elements).
 
+EACCES For BPF_PROG_LOAD, even though all program instructions are
+       valid, the program has been rejected because it was deemed
+       unsafe.  This may be because it may have accessed a
+       disallowed memory region or an uninitialized stack/register
+       or because the function constraints don't match the actual
+       types or because there was a misaligned memory access.  In
+       this case, it is recommended to call bpf() again with
+       log_level = 1 and examine log_buf for the specific reason
+       provided by the verifier.
+
+EAGAIN For BPF_PROG_LOAD, indicates that needed resources are
+       blocked.  This happens when the verifier detects pending
+       signals while it is checking the validity of the bpf
+       program.  In this case, just call bpf() again with the same
+       parameters.
+
+EBADF  fd is not an open file descriptor.
+
+EFAULT One of the pointers (key or value or log_buf or insns) is
+       outside the accessible address space.
+
+EINVAL The value specified in cmd is not recognized by this
+       kernel.
+
+EINVAL For BPF_MAP_CREATE, either map_type or attributes are
+       invalid.
+
+EINVAL For BPF_MAP_*_ELEM commands, some of the fields of union
+       bpf_attr that are not used by this command are not set to
+       zero.
+
+EINVAL For BPF_PROG_LOAD, indicates an attempt to load an invalid
+       program.  eBPF programs can be deemed invalid due to
+       unrecognized instructions, the use of reserved fields,
+       jumps out of range, infinite loops or calls of unknown
+       functions.
+
+ENOENT For BPF_MAP_LOOKUP_ELEM or BPF_MAP_DELETE_ELEM, indicates
+       that the element with the given key was not found.
+
+ENOMEM Cannot allocate sufficient memory.
+
+EPERM  The call was made without sufficient privilege (without the
+       CAP_SYS_ADMIN capability).
+```
 ## Others
+[权限要求]
+在Linux 4.4之前，所有bpf()命令都需要调用者具有CAP_SYS_ADMIN能力(capability)。CAP_SYS_ADMIN是一个强大的能力，通常只有root用户或具有特定权限的用户才拥有。Linux 4.4之后，未特权用户（unprivileged users）可以创建有限类型的eBPF程序和相关的映射。允许的程序类型包括BPF_PROG_TYPE_SOCKET_FILTER。
+这些程序和映射有一些限制，例如不能在映射中存储内核指针，并且只能使用以下辅助函数：
+- `get_random()`
+- `get_smp_processor_id()`
+- `tail_call()`
+- `ktime_get_ns()`
+
+非特权访问可以通过向/proc/sys/kernel/unprivileged_bpf_disabled写入1来阻止。这个文件提供了一个开关，用于控制未特权用户是否可以使用eBPF功能。
+
+[共享机制]eBPF对象(映射和程序)可以在进程之间共享, 例如, 在`fork()`之后, 子进程会继承同一个指向eBPF对象的文件描述符。另外, 引用eBPF对象的文件描述符也可以通过UNIX domin socket传递。引用eBPF对象的文件描述符也通过普通的方式使用`dup(2)`和类似的调用进行复制. 一个eBPF对象只在所有的文件描述符引用都关闭之后才会被析构。
+
+
+[编程限制]eBPF程序可以使用受限的C语言编写，然后使用clang编译器编译为eBPF字节码。这种受限的C语言省略了一些特性，例如：循环（loops）,全局变量（global variables）,可变参数函数（variadic functions）,浮点数（floating-point numbers）,作为函数参数传递的结构体（passing structures as function arguments）。内核源码树中的 samples/bpf/*_kern.c 文件包含了一些eBPF程序的示例。
+
+[eBPF JIT编译器]
+- 即时编译：JIT编译器将eBPF字节码转换为原生机器代码，从而提高性能。
+- 性能优化：原生机器代码的执行速度比解释执行的字节码更快，因此JIT编译器可以显著提升eBPF程序的性能。
+
+JIT 编译器的行为可以通过写入特定的整数值到 /proc/sys/net/core/bpf_jit_enable 文件来控制。配置选项：
+- 0：禁用 JIT 编译（默认值）。
+- 1：正常编译。
+- 2：调试模式。生成的机器码将以十六进制形式输出到内核日志中。这些机器码可以使用内核源码树中的 tools/net/bpf_jit_disasm.c 程序进行反汇编。
+
+从4.15开始, 内核可以用CONFIG_BPF_JIT_ALWAYS_ON选项进行配置, 在这种情况下, JIT编译器总是会开启, 并且bpf_jit_enable也初始化为1并且不可改变. (内核配置选项可以缓解潜在的针对BPF解释器的Spectre攻击)
+
+
+eBPF的JIT编译器目前对下列架构可用:
+```c
+       •  x86-64 (since Linux 3.18; cBPF since Linux 3.0);
+       •  ARM32 (since Linux 3.18; cBPF since Linux 3.4);
+       •  SPARC 32 (since Linux 3.18; cBPF since Linux 3.5);
+       •  ARM-64 (since Linux 3.18);
+       •  s390 (since Linux 4.1; cBPF since Linux 3.7);
+       •  PowerPC 64 (since Linux 4.8; cBPF since Linux 3.1);
+       •  SPARC 64 (since Linux 4.12);
+       •  x86-32 (since Linux 4.18);
+       •  MIPS 64 (since Linux 4.18; cBPF since Linux 3.16);
+       •  riscv (since Linux 5.1).
+```
