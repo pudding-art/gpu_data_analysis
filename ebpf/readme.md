@@ -57,4 +57,5 @@ https://ebpf.io/zh-hans/what-is-ebpf/
 6. Linux Socket Filtering aka Berkeley Packet Filter (BPF) https://www.kernel.org/doc/html/latest/networking/filter.html#networking-filter
 7. Unofficial eBPF spec https://github.com/iovisor/bpf-docs/blob/master/eBPF.md
 8. BPF internals https://www.usenix.org/conference/lisa21/presentation/gregg-bpf
+9. eBPF - difference between loading, attaching, and linking? https://stackoverflow.com/questions/68278120/ebpf-difference-between-loading-attaching-and-linking
 
