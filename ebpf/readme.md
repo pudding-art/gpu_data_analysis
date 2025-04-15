@@ -1,7 +1,7 @@
 # libbpf学习路线
 ## 系统调用
 
-BPF之路一bpf系统调用
+BPF之路一bpf系统调用（翻译的man bpf,可以看原文）
 https://www.anquanke.com/post/id/263803
 
 BPF之路二(e)BPF汇编
@@ -10,7 +10,7 @@ https://www.anquanke.com/post/id/263988
 BPF之路三如何运行BPF程序
 https://www.anquanke.com/post/id/265887
 
-BPF之路四JIT源码分析
+BPF之路四JIT源码分析（代码分析较多，可以考虑看Linux3.x版本的代码逻辑更清晰）
 https://www.anquanke.com/post/id/266765
 
 ## libbpf例子
@@ -20,6 +20,7 @@ https://www.anquanke.com/post/id/266765
 https://zhuanlan.zhihu.com/p/596058784
 
 ## 获取/掌握/了解编写ebpf程序的范式
+了解eBPF的运行原理，eBPF程序是如何与内核进行交互的（编程接口），各类eBPF程序的触发机制及其应用场景。
 
 ## 看懂熟悉libbpf-bootstrap的一个例子
 
@@ -65,6 +66,6 @@ https://ebpf.io/zh-hans/what-is-ebpf/
 14. 一文读懂eBPF|JIT实现原理 https://www.51cto.com/article/706101.html
 15. 攻击网页浏览器:面向脚本代码块的ROP Gadget注入 https://www.sciengine.com/doi/pdf/61A042FEC85341FD84E0EE36AFC40D79
 16. 尾调用优化 https://www.ruanyifeng.com/blog/2015/04/tail-call.html
-
-
-
+17. eunomia-bpf https://github.com/eunomia-bpf
+18. eBPF开发实践教程 https://eunomia.dev/zh/tutorials/SUMMARY/
+19. eunomia https://eunomia.dev/
