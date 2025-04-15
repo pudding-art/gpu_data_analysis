@@ -62,4 +62,9 @@ https://ebpf.io/zh-hans/what-is-ebpf/
 11. How to get Linux ebpf assembly? https://stackoverflow.com/questions/39998050/how-to-get-linux-ebpf-assembly/40912405
 12. ubpf https://github.com/iovisor/ubpf/
 13. Linux内核eBPF虚拟机源码分析 https://bbs.kanxue.com/thread-267956.htm
+14. 一文读懂eBPF|JIT实现原理 https://www.51cto.com/article/706101.html
+15. 攻击网页浏览器:面向脚本代码块的ROP Gadget注入 https://www.sciengine.com/doi/pdf/61A042FEC85341FD84E0EE36AFC40D79
+16. 尾调用优化 https://www.ruanyifeng.com/blog/2015/04/tail-call.html
+
+
 
