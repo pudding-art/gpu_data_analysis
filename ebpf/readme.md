@@ -58,4 +58,8 @@ https://ebpf.io/zh-hans/what-is-ebpf/
 7. Unofficial eBPF spec https://github.com/iovisor/bpf-docs/blob/master/eBPF.md
 8. BPF internals https://www.usenix.org/conference/lisa21/presentation/gregg-bpf
 9. eBPF - difference between loading, attaching, and linking? https://stackoverflow.com/questions/68278120/ebpf-difference-between-loading-attaching-and-linking
+10. bpf_study https://github.com/pudding-art/bpf_study
+11. How to get Linux ebpf assembly? https://stackoverflow.com/questions/39998050/how-to-get-linux-ebpf-assembly/40912405
+12. ubpf https://github.com/iovisor/ubpf/
+13. Linux内核eBPF虚拟机源码分析 https://bbs.kanxue.com/thread-267956.htm
 
