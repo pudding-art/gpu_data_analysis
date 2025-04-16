@@ -62,12 +62,29 @@ bpftool --help # 查看bpftool可用的命令和选项
 ```shell
 sudo bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 ```
-如果运行失败，需要根据提示使用apt安装linux-tools-$(uname -r)-generic和linux-cloud-tools-$(uname -r)-generic包。
+如果运行失败，需要根据提示使用apt安装`linux-tools-xxx-generic`和`linux-cloud-tools-xxx-generic`包。
 
 ### 2.eBPF程序开发
+在eBPF程序中，`SEC()`宏是一个非常重要的工具，用于将特定的数据结构和函数分配到**ELF文件的特定段**中。这样在加载BPF字节码时，内核可以识别这些段并提取所需的元数据。
 
 
 
+
+
+
+
+
+### 3. 
+
+### 4. 
+
+
+### 5.结果
+```shell
+sudo ./execsnoop
+# 另起一个终端，execsnoop下会出现对应采样数据
+```
+![results](image-9.png)
 ## 相关工具和依赖
 - bpftool:用于管理eBPF程序和BPF对象的工具 https://github.com/libbpf/bpftool.git
 - libbpf: eBPF程序的开发库 https://github.com/libbpf/libbpf
@@ -158,4 +175,8 @@ https://github.com/libbpf/libbpf
 9. BPF BTF 详解 https://www.ebpf.top/post/kernel_btf/
 10. Kernel开启BTF方式 https://kubeservice.cn/2023/10/08/kernel-enable-btf/
 11. libbpf-bootstrap交叉编译 https://blog.csdn.net/qq_38232169/article/details/135398623
+12. Ubuntu安装libbpf教程
+https://blog.csdn.net/qq_43472789/article/details/130839929
+13. eBPF学习记录（四）使用libbpf开发eBPF程序 https://blog.csdn.net/sinat_22338935/article/details/123318084
+14. eBPF代码入门 https://blog.spoock.com/2023/08/14/eBPF-Helloworld/
 

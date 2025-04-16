@@ -16,7 +16,7 @@ https://www.anquanke.com/post/id/266765
 ## libbpf例子
 找一个能跑通的简单的例子。
 
-eBPF学习记录（四）使用libbpf开发eBPF程序
+eBPF学习记录（四）使用libbpf开发eBPF程序（需要修改才能运行）
 https://blog.csdn.net/sinat_22338935/article/details/123318084
 
 【eBPF】使用libbpf开发eBPF程序
@@ -24,6 +24,8 @@ https://zhuanlan.zhihu.com/p/596058784
 
 ## 获取/掌握/了解编写ebpf程序的范式
 了解eBPF的运行原理，eBPF程序是如何与内核进行交互的（编程接口），各类eBPF程序的触发机制及其应用场景。
+
+![bpf_internals](image-7.png)
 
 ## 看懂熟悉libbpf-bootstrap的一个例子
 
