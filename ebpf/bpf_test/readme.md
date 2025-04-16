@@ -158,6 +158,21 @@ ldconfig -p | grep zstd
 ![execsnoop](image-7.png)
 
 
+## 解决编译依赖错误问题的通用方法
+> 拿到工作或者所在领域的问题后，先看自己能否快速想出完整的解决方案，并确认自己能动手下场解决好。
+
+步骤如下：
+1. 先看报错信息
+2. 然后看文档
+3. `apt search <package name>`查找报错包名，快速找到要安装的候选库
+    - 编译版本问题
+        ```shell
+        eibudev-dev:Depends:libpulseo(=1:15.99+dfsg1-ubuntu1) but 1:15.99+dfsg1-1ubuntu2.1 is to be installed 
+        ```
+        依赖低版本但是现在是高版本
+4. `sudo apt install <searched package>`尝试安装找到的包名
+5. 找到对应OS有哪些解决冲突的工具
+
 
 
 
