@@ -6,6 +6,9 @@
 
 static const struct event empty_event = { };
 
+/**
+ * SEC(".maps")定义了哈希映射和性能事件映射，会将相应的变量放入ELF的数据段中
+ */
 // 定义哈希映射
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -21,6 +24,11 @@ struct {
 	__uint(value_size, sizeof(u32));
 }events SEC(".maps");
 
+
+/**
+ * SEC("tracepoint/<跟踪点名称>")定义了跟踪点处理函数，系统调用跟踪点函数的格式是"tracepoint__syscalls__<系统调用名称>"
+ * 简单来说就是将"/"换成了"__",如果需要定义内核插桩和用户插桩，也是以类似的格式
+ */
 // 定义sys_enter_execve跟踪点函数
 SEC("tracepoint/syscalls/sys_enter_execve")
 int tracepoint__syscalls__sys_enter_execve(struct trace_event_raw_sys_enter
@@ -121,6 +129,11 @@ int tracepoint__syscalls__sys_exit_execve(struct trace_event_raw_sys_exit *ctx)
 	bpf_map_delete_elem(&execs, &pid);
 	return 0;
 }
+
+/**
+ * SEC(“license”) 定义了eBPF程序的许可证。在之前的BCC eBPF程序中，
+ * 我们并没有定义许可证，这是因为BCC自动使用了GPL许可。
+ */
 // 定义许可证（前述的BCC默认使用GPL）
 char LICENSE[] SEC("license") = "GPL";
 

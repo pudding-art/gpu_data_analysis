@@ -110,20 +110,33 @@ char LICENSE[] SEC("license") = "GPL";
 3. 加载到内核：加载器将提取的元数据传递给内核，内核根据这些信息验证和加载 eBPF 程序。
 
 
+```shell
+clang -g -O2 -target bpf -D__TARGET_ARCH_x86_64 -I/usr/include/x86_64-linux-gnu -I. -c execsnoop.bpf.c -o execsnoop.bpf.o
+bpftool gen skeleton execsnoop.bpf.o > execsnoop.skel.h
+```
+bpftool gen skeleton是一个用于生成 eBPF 程序的骨架（skeleton）头文件的工具。这个工具可以简化eBPF程序的加载和管理流程，使得用户空间程序与eBPF程序之间的交互更加清晰和可靠。比如
+生成的*.skel.h文件中的函数调用（如`execsnoop_bpf__open`、`execsnoop_bpf__load`和`execsnoop_bpf__attach`）是自动生成的，它们并不是用户手动编写的代码。
 
 
+### 3.用户态程序开发
+同BCC的Python前端程序类似，libbpf用户态程序也需要eBPF程序加载、挂载到跟踪点，以及通过BPF映射获取和打印执行结果等几个步骤。虽然C语言听起来可能比 Python 语言麻烦一些，但实际上，这几个步骤都可以通过字节码头文件中自动生成的函数来完成，使得用户空间程序可以更简单地与eBPF程序交互。提供了一组统一的接口，用于加载、验证和附加 BPF 程序，确保了代码的一致性和可靠性。通过自动生成这些函数，减少了手动编写代码时可能出现的错误。
+```shell
+clang -g -O2 -Wall -I . -c execsnoop.c -o execsnoop.o
+clang -Wall -O2 -g execsnoop.o -static -lbpf -lelf -lzstd -lz -o execsnoop
+```
 
-### 3. 
-
-### 4. 
-
-
-### 5.结果
+### 4.结果
 ```shell
 sudo ./execsnoop
 # 另起一个终端，execsnoop下会出现对应采样数据
 ```
 ![results](image-9.png)
+
+可以直接把这个execsnoop应用程序复制到开启了BTF的其他机器中，无需安装额外的LLVM开发工具和内核头文件，也可以直接执行。如果命令失败，并且你看到如下的错误，这说明当前机器没有开启BTF，需要重新编译内核开启BTF才可以运行：
+```shell
+Failed to load and verify BPF skeleton
+```
+
 ## 相关工具和依赖
 - bpftool:用于管理eBPF程序和BPF对象的工具 https://github.com/libbpf/bpftool.git
 - libbpf: eBPF程序的开发库 https://github.com/libbpf/libbpf
