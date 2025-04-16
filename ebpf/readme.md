@@ -14,7 +14,10 @@ BPF之路四JIT源码分析（代码分析较多，可以考虑看Linux3.x版本
 https://www.anquanke.com/post/id/266765
 
 ## libbpf例子
-找一个能跑通的简单的例子
+找一个能跑通的简单的例子。
+
+eBPF学习记录（四）使用libbpf开发eBPF程序
+https://blog.csdn.net/sinat_22338935/article/details/123318084
 
 【eBPF】使用libbpf开发eBPF程序
 https://zhuanlan.zhihu.com/p/596058784
