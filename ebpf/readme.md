@@ -22,6 +22,9 @@ https://blog.csdn.net/sinat_22338935/article/details/123318084
 【eBPF】使用libbpf开发eBPF程序
 https://zhuanlan.zhihu.com/p/596058784
 
+可以将如下简单的监控vfs_mkdir函数的ebpf代码转换一下
+https://blog.spoock.com/2023/08/14/eBPF-Helloworld/
+
 ## 获取/掌握/了解编写ebpf程序的范式
 了解eBPF的运行原理，eBPF程序是如何与内核进行交互的（编程接口），各类eBPF程序的触发机制及其应用场景。
 

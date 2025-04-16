@@ -65,12 +65,52 @@ sudo bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 如果运行失败，需要根据提示使用apt安装`linux-tools-xxx-generic`和`linux-cloud-tools-xxx-generic`包。
 
 ### 2.eBPF程序开发
-在eBPF程序中，`SEC()`宏是一个非常重要的工具，用于将特定的数据结构和函数分配到**ELF文件的特定段**中。这样在加载BPF字节码时，内核可以识别这些段并提取所需的元数据。
+在eBPF程序中，`SEC()`宏是一个非常重要的工具，用于将特定的数据结构和函数分配到**ELF文件的特定段**中。这样在加载BPF字节码时，内核可以识别这些段并提取所需的元数据。SEC()用于指明这个BPF程序应该怎样绑定到内核。
+`SEC()`宏用于将代码或数据分配到特定的ELF段中。这些段在加载BPF程序时会被内核解析，从而提取出相关的元数据。常见的段包括：
+- maps：用于定义 BPF 映射（如哈希表、数组等）。
+- progs：用于定义 BPF 程序入口点。
+- kprobe、tp、fentry 等：用于定义跟踪点或探针。
+
+SEC宏通常定义为一个编译器属性，用于指定代码或数据的段名。编译器（如 Clang）会将带有SEC宏的代码或数据分配到指定的段中。编译后的ELF文件会包含这些段，每个段都有一个唯一的名称。段在ELF文件中以section的形式存在，eBPF加载器如libbpf在加载eBPF程序时，会解析ELF文件中的段信息，提取所需的元数据。加载器根据段的名称和内容，将eBPF程序加载到内核中，并绑定到相应的跟踪点或事件。
+
+从SEC的定义中可以看出将挂载到那个事件/tracepoint等，如SEC("kprobe/vfs_mkdir")定义了一个名为“kprobe/vfs_mkdir”的段。这个段的名称指出，这个BPF程序将作为一个kprobe，并且应当在vfs_mkdir这个内核函数被调用的时候执行。vfs_mkdir是在文件系统进行创建目录操作时所调用的一个函数。所以，这段BPF程序实际上是在每当有新的目录被创建时执行。当这个BPF程序加载进内核时，BPF加载器会解析这个段名，并且创建一个绑定到vfs_mkdir的kprobe。然后每当vfs_mkdir被调用时，这个BPF程序就会被触发。这种通过SEC宏定义段名的做法是libbpf（一种常用的BPF加载库）的特性，它大大简化了BPF程序的加载和管理过程，使得BPF程序的编写者可以用更高级别、更直观的方式来描述他们希望的加载行为。
 
 
 
 
+```c
+#include <linux/bpf.h>
+#include <linux/in.h>
+#include <bpf/bpf_helpers.h>
 
+// 定义一个哈希映射，分配到 "maps" 段
+struct bpf_map_def SEC("maps") events = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(u32),
+    .value_size = sizeof(struct event),
+    .max_entries = 1024,
+};
+
+// 定义一个跟踪点的处理函数，分配到 "kprobe/syscalls/sys_enter_execve" 段
+SEC("kprobe/syscalls/sys_enter_execve")
+int BPF_PROG(handle_execve, struct pt_regs *ctx) {
+    // 处理逻辑
+    return 0;
+}
+
+// 定义程序的许可证，分配到 "license" 段
+char LICENSE[] SEC("license") = "GPL";
+```
+
+编译后，生成的ELF文件会包含以下节：
+- maps：存储哈希映射 events。
+- kprobe/syscalls/sys_enter_execve：存储跟踪点处理函数 handle_execve。
+- license：存储程序的许可证信息。
+
+加载器如何读取段?
+1. 解析ELF文件：加载器（如 libbpf）使用 libelf 库解析 ELF 文件，读取每个节的名称和内容。通过节名，加载器可以识别和处理不同的代码和数据结构。
+2. 提取元数据：加载器根据节名提取相应的元数据。例如，从 .maps 节提取哈希映射的定义，从 .kprobe/syscalls/sys_enter_execve 节提取跟踪点处理函数。
+3. 加载到内核：加载器将提取的元数据传递给内核，内核根据这些信息验证和加载 eBPF 程序。
 
 
 
@@ -179,4 +219,4 @@ https://github.com/libbpf/libbpf
 https://blog.csdn.net/qq_43472789/article/details/130839929
 13. eBPF学习记录（四）使用libbpf开发eBPF程序 https://blog.csdn.net/sinat_22338935/article/details/123318084
 14. eBPF代码入门 https://blog.spoock.com/2023/08/14/eBPF-Helloworld/
-
+15. BPF ringbuf vs. BPF perfbuf https://nakryiko.com/posts/bpf-ringbuf/
