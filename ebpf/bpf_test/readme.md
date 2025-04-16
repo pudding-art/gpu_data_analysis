@@ -41,7 +41,7 @@ BTF文件是在内核编译时生成的，具体取决于内核的配置选项�
 ### 1. 内核头文件生成
 "vmlinux.h"是一个包含了完整的内核数据结构的头文件，是从vmlinux内核二进制中提取的。使用这个头文件，eBPF程序可以访问内核的数据结构，不用手动引入内核头文件。如果内核不支持生成该头文件，请手动引入所需要的内核头文件。
 
-"bpf_helpers.h"中定义了一系列的宏，这些宏是eBPF程序使用的BPF辅助函数的封装。
+"bpf_helpers.h"中定义了一系列的宏，这些宏是eBPF程序使用的BPF辅助函数的封装，包括SEC, BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_PERF_EVENT_ARRAY等宏定义和bpf_get_current_pid_tgid等函数。
 
 源码编译安装bpftool：
 ```shell
@@ -74,9 +74,6 @@ sudo bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 SEC宏通常定义为一个编译器属性，用于指定代码或数据的段名。编译器（如 Clang）会将带有SEC宏的代码或数据分配到指定的段中。编译后的ELF文件会包含这些段，每个段都有一个唯一的名称。段在ELF文件中以section的形式存在，eBPF加载器如libbpf在加载eBPF程序时，会解析ELF文件中的段信息，提取所需的元数据。加载器根据段的名称和内容，将eBPF程序加载到内核中，并绑定到相应的跟踪点或事件。
 
 从SEC的定义中可以看出将挂载到那个事件/tracepoint等，如SEC("kprobe/vfs_mkdir")定义了一个名为“kprobe/vfs_mkdir”的段。这个段的名称指出，这个BPF程序将作为一个kprobe，并且应当在vfs_mkdir这个内核函数被调用的时候执行。vfs_mkdir是在文件系统进行创建目录操作时所调用的一个函数。所以，这段BPF程序实际上是在每当有新的目录被创建时执行。当这个BPF程序加载进内核时，BPF加载器会解析这个段名，并且创建一个绑定到vfs_mkdir的kprobe。然后每当vfs_mkdir被调用时，这个BPF程序就会被触发。这种通过SEC宏定义段名的做法是libbpf（一种常用的BPF加载库）的特性，它大大简化了BPF程序的加载和管理过程，使得BPF程序的编写者可以用更高级别、更直观的方式来描述他们希望的加载行为。
-
-
-
 
 ```c
 #include <linux/bpf.h>
@@ -111,6 +108,8 @@ char LICENSE[] SEC("license") = "GPL";
 1. 解析ELF文件：加载器（如 libbpf）使用 libelf 库解析 ELF 文件，读取每个节的名称和内容。通过节名，加载器可以识别和处理不同的代码和数据结构。
 2. 提取元数据：加载器根据节名提取相应的元数据。例如，从 .maps 节提取哈希映射的定义，从 .kprobe/syscalls/sys_enter_execve 节提取跟踪点处理函数。
 3. 加载到内核：加载器将提取的元数据传递给内核，内核根据这些信息验证和加载 eBPF 程序。
+
+
 
 
 
