@@ -5,16 +5,40 @@ libbpf是一个C语言库，伴随内核版本分发，用于辅助eBPF程序的
 ![libbpf_ebpf](image.png)
 参考自：https://zhuanlan.zhihu.com/p/596058784
 
-生成eBPF程序字节码，字节码最终被内核中的「虚拟机」执行。 通过系统调用加载eBPF字节码到内核中，将eBPF程序attach到各个事件、函数。 创建map，用于在内核态与用户态进行数据交互。「事件」、TP点触发时，调用attach的eBPF字节码并执行其功能。
 
-- syscall_count_kern.c为eBPF程序的C代码，使用clang编译为eBPF字节码
-- syscall_count_user.cpp为用户态程序，用于调用libbpf加载eBPF字节码
+使用libbpf开发eBPF程序也是需要内核态的eBPF程序和用户态的加载、挂载、映射读取以及输出程序的，可以通过以下步骤完成：
+1. 内核头文件生成`vmlinux.h`
+2. eBPF程序开发，`<app>.bpf.c`主要包含要在内核上下文中执行的逻辑
+3. 编译eBPF程序为字节码
+4. 用户态程序开发，`<app>.c/cpp`在应用程序的整个生命周期中加载BPF代码并与其交互
+    - 可选的`<app>.h`代码是具有常见类型定义的头文件，并且由应用程序的BPF和用户空间代码共享；
+5. 编译用户态程序
+
+> 有了eBPF程序，就可以使用clang和bpftool将其编译成BPF字节码，然后再生成其头文件编译内核态文件
+
+生成eBPF程序字节码，字节码最终被内核中的「虚拟机」执行。 通过系统调用加载eBPF字节码到内核中，将eBPF程序attach到各个事件、函数。 创建map，用于在内核态与用户态进行数据交互。「事件」、TP点触发时，调用attach的eBPF字节码并执行其功能。
 
 字节码生成有多种方式：
 1. 手动编写字节码（手写汇编指令），使用libbpf中的内存加载模式。
 2. 编写c代码，由clang生成，使用libbpf解析elf文件获取相关字节码信息。
 3. 一些其他工具能够解析脚本语言生成字节码（bpftrace）。
 
+
+## BTF
+BTF（BPF 类型格式）是一种元数据格式，对与BPF programs/maps有关的调试信息进行编码。BTF这个名字最初是用来描述数据类型。后来，BTF被扩展到包括已定义的子程序的函数信息和行信息。
+
+BTF文件是在内核编译时生成的，具体取决于内核的配置选项（如 `CONFIG_DEBUG_INFO_BTF`）。如果启用了相关选项，内核会自动生成并暴露这些信息
+
+检查内核是否开启BTF调试：
+![btf](image-4.png)
+返回`CONFIG_DEBUG_INFO_BTF=y`表示内核已经开启的BTF。内核开启BTF 启用`CONFIG_DEBUG_INFO_BTF=y`内核选项即可。内核本身可以使用BTF功能，用于增强BPF验证程序自身的功能。
+
+在eBPF程序中，由于内核已经支持了BTF，不再需要引入众多的内核头文件来获取内核数据结构的定义。取而代之的是一个通过bpftool生成的`vmlinux.h`头文件，其中包含了内核数据结构的定义。
+检查内核是否BTF vmlinux：
+![vmlinux](image-5.png)
+
+## 开发步骤
+### 1. 内核头文件生成
 "vmlinux.h"是一个包含了完整的内核数据结构的头文件，是从vmlinux内核二进制中提取的。使用这个头文件，eBPF程序可以访问内核的数据结构，不用手动引入内核头文件。如果内核不支持生成该头文件，请手动引入所需要的内核头文件。
 
 "bpf_helpers.h"中定义了一系列的宏，这些宏是eBPF程序使用的BPF辅助函数的封装。
@@ -33,6 +57,9 @@ bpftool --version # 验证是否成功
 sudo ln -s /usr/local/sbin/bpftool /usr/sbin/bpftool # 创建符号链接，使得bpftool在系统范围内可用
 bpftool --help # 查看bpftool可用的命令和选项
 ```
+
+
+### 2. 
 编译syscall_count_kern.c:
 ```shell
 clang -g -O2 -target bpf -c syscall_count_kern.c -o syscall_count_kern.o -I$PWD/libbpf/include/
@@ -82,9 +109,59 @@ mount -t debugfs none /sys/kernel/debug
 将syscall_count_kern.o、syscall_count和动态库拷贝到之前搭建的内核调试环境中。
 
 
+- syscall_count_kern.c为eBPF程序的C代码，使用clang编译为eBPF字节码
+- syscall_count_user.cpp为用户态程序，用于调用libbpf加载eBPF字节码
+
+## 相关工具和依赖
+- bpftool:用于管理eBPF程序和BPF对象的工具 https://github.com/libbpf/bpftool.git
+- libbpf: eBPF程序的开发库 https://github.com/libbpf/libbpf
+    - 检测libbpf是否安装成功：
+    ![libbpf_hardirqs](image-6.png)
+- libbpf-dev: eBPF程序的开发库
+- elfutils:一组用于处理ELF文件的工具 `sudo apt install elfutils`
+- kernel-source:内核源码 `sudo apt install linux-source`或者特定版本`sudo apt install linux-headers-$(uname -r)`
+- 其他依赖:`sudo apt install -y git build-essential libelf-dev clang llvm`
 
 
-## libbpf例子
+## debug
+```shell
+hwt@hwt-VMware-Virtual-Platform:~/workspace$ clang -Wall -O2 -g execsnoop.o -static -lbpf -lelf -lz -o execsnoop
+/usr/bin/ld: /lib/x86_64-linux-gnu/libelf.a(elf_compress.o): in function `__libelf_compress':
+(.text+0x113): undefined reference to `ZSTD_createCCtx'
+/usr/bin/ld: (.text+0x2a9): undefined reference to `ZSTD_compressStream2'
+/usr/bin/ld: (.text+0x2b4): undefined reference to `ZSTD_isError'
+/usr/bin/ld: (.text+0x2db): undefined reference to `ZSTD_freeCCtx'
+/usr/bin/ld: (.text+0x5a0): undefined reference to `ZSTD_compressStream2'
+/usr/bin/ld: (.text+0x5ab): undefined reference to `ZSTD_isError'
+/usr/bin/ld: (.text+0x6b9): undefined reference to `ZSTD_freeCCtx'
+/usr/bin/ld: (.text+0x835): undefined reference to `ZSTD_freeCCtx'
+/usr/bin/ld: (.text+0x86f): undefined reference to `ZSTD_freeCCtx'
+/usr/bin/ld: (.text+0x91b): undefined reference to `ZSTD_freeCCtx'
+/usr/bin/ld: (.text+0xa12): undefined reference to `ZSTD_freeCCtx'
+/usr/bin/ld: /lib/x86_64-linux-gnu/libelf.a(elf_compress.o): in function `__libelf_decompress':
+(.text+0xbfc): undefined reference to `ZSTD_decompress'
+/usr/bin/ld: (.text+0xc04): undefined reference to `ZSTD_isError'
+/usr/bin/ld: /lib/x86_64-linux-gnu/libelf.a(elf_compress.o): in function `__libelf_decompress_elf':
+(.text+0xd45): undefined reference to `ZSTD_decompress'
+/usr/bin/ld: (.text+0xd4d): undefined reference to `ZSTD_isError'
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+```
+由于链接时缺少libzstd库导致的。libzstd是一个用于快速压缩和解压缩的库，而libelf可能依赖于libzstd。
+
+```shell
+sudo apt install zstd libzstd-dev
+# clang -Wall -O2 -g execsnoop.o -static -lbpf -lelf -lz -o execsnoop
+clang -Wall -O2 -g execsnoop.o -static -lbpf -lelf -lzstd -lz -o execsnoop
+# 确保libzstd库已正确安装并可用
+ldconfig -p | grep zstd
+```
+![execsnoop](image-7.png)
+
+
+
+
+
+## 参考文献
 1. 【eBPF】使用libbpf开发eBPF程序
 https://zhuanlan.zhihu.com/p/596058784
 2. libbpf
@@ -95,3 +172,7 @@ https://github.com/libbpf/libbpf
 6. libbpf-tools https://github.com/iovisor/bcc/tree/master/libbpf-tools
 7. libbpf-bootstrap交叉编译 https://blog.csdn.net/qq_38232169/article/details/135398623
 8. libelf开源库用法详解 https://tinylab.org/libelf/
+9. BPF BTF 详解 https://www.ebpf.top/post/kernel_btf/
+10. Kernel开启BTF方式 https://kubeservice.cn/2023/10/08/kernel-enable-btf/
+11. libbpf-bootstrap交叉编译 https://blog.csdn.net/qq_38232169/article/details/135398623
+
