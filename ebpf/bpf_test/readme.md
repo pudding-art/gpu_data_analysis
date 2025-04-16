@@ -58,59 +58,15 @@ sudo ln -s /usr/local/sbin/bpftool /usr/sbin/bpftool # 创建符号链接，使�
 bpftool --help # 查看bpftool可用的命令和选项
 ```
 
-
-### 2. 
-编译syscall_count_kern.c:
+利用/sys/kernel/vmlinux生成vmlinux.h
 ```shell
-clang -g -O2 -target bpf -c syscall_count_kern.c -o syscall_count_kern.o -I$PWD/libbpf/include/
+sudo bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 ```
+如果运行失败，需要根据提示使用apt安装linux-tools-$(uname -r)-generic和linux-cloud-tools-$(uname -r)-generic包。
 
-![alt text](image-1.png)
-
-使用系统自带的内核头文件，或者通过内核源码编译`make headers_install`安装的内核头文件
-
-![alt text](image-2.png)
-
-确定交叉编译工具链是否存在libelf和zlib
-- zlib源码 http://www.zlib.net/
-- elfutils源码 https://sourceware.org/elfutils/
-
-```shell
-sudo apt install g++-riscv64-linux-gnu gcc-riscv64-linux-gnu
-wget http://www.zlib.net/zlib-1.3.1.tar.gz
-tar -xvf zlib-1.3.1.tar.gz
-CC=riscv64-linux-gnu-gcc CXX=riscv64-linux-gnu-g++ ./configure --prefix=$PWD/install
-make 
-make install
+### 2.eBPF程序开发
 
 
-wget https://sourceware.org/elfutils/ftp/elfutils-latest.tar.bz2
-git clone git://sourceware.org/git/elfutils.git
-cd elfutils-0.188 && mkdir install
-CC=riscv64-linux-gnu-gcc CXX=riscv64-linux-gnu-g++ LDFLAGS="-L$PWD/../zlib-1.2.13/install/lib" LIBS="-lz" ./configure --prefix=$PWD/install --build=x86_64-linux-gnu --host=riscv64-linux-gnu --disable-libdebuginfod --disable-debuginfod
-make -j8
-make -C libelf install
-
-```
-编译用户态eBPF加载程序，链接之前编译好的依赖库：
-```shell
-riscv64-linux-gnu-g++ -o syscall_count syscall_count_user.cpp ./libbpf/libbpf.a -lelf -lz -I$PWD/libbpf/include -I$PWD/linux-headers/include/ -L$PWD/zlib-1.2.13/install/lib -L$PWD/elfutils-0.188/install/lib
-
-```
-注意：内核要开启相关功能（若加载失败可以使用 gdb 进行内核调试，定位根因）
-
-```shell
-# Kernel hacking
-#   -> Tracers 这里开启
-# 还需要挂载 debugfs
-mount -t debugfs none /sys/kernel/debug
-```
-
-将syscall_count_kern.o、syscall_count和动态库拷贝到之前搭建的内核调试环境中。
-
-
-- syscall_count_kern.c为eBPF程序的C代码，使用clang编译为eBPF字节码
-- syscall_count_user.cpp为用户态程序，用于调用libbpf加载eBPF字节码
 
 ## 相关工具和依赖
 - bpftool:用于管理eBPF程序和BPF对象的工具 https://github.com/libbpf/bpftool.git
@@ -171,7 +127,19 @@ ldconfig -p | grep zstd
         ```
         依赖低版本但是现在是高版本
 4. `sudo apt install <searched package>`尝试安装找到的包名
-5. 找到对应OS有哪些解决冲突的工具
+5. 找到对应OS有哪些解决冲突的工具，以ubuntu为例：
+    ```shell
+    sudo apt install aptitude
+    sudo aptitude install libsd12-dev # 实际上是一个apt工具，读出apt依赖问题再帮你解决
+    ```
+    但是要仔细阅读aptitude给出的解决方案是什么，会给出很多个解决方案！
+6. 仍然不能解决去找对应的issues（记得把前面的open关掉），看看官方问题中有没有什么问题
+7. 再用GPT去解决
+8. 最后再用搜索引擎，搜索的时候不要直接复制粘贴，只放有用的信息
+    - tldr unzip 看工具作用
+    - web archive, Wayback Machine https://web.archive.org/ 找古老的网站，内链都能点击
+9. 找论坛，找文章解决
+
 
 
 
