@@ -253,6 +253,25 @@ BPF 映射更适合在内核空间中存储和共享数据，特别是在系统�
 4. 最后就是用户态程序引入上一步生成的头文件，开发用户态程序，包括eBPF程序加载、挂载到内核函数和跟踪点，以及通过BPF映射获取和打印执行结果等。
 
 
+
+通常，这几个步骤里面的编译、库链接、执行bpftool命令等，都可以放到Makefile中，这样就可以通过一个`make`命令去执行所有的步骤。比如，下面是一个简化版本的Makefile：
+```shell
+APPS = execsnoop
+
+.PHONY: all
+all: $(APPS)
+
+$(APPS):
+    clang -g -O2 -target bpf -D__TARGET_ARCH_x86_64 -I/usr/include/x86_64-linux-gnu -I. -c $@.bpf.c -o $@.bpf.o
+    bpftool gen skeleton $@.bpf.o > $@.skel.h
+    clang -g -O2 -Wall -I . -c $@.c -o $@.o
+    clang -g -O2 -Wall $@.o -static -lbpf -lelf -lz -o $@
+
+vmlinux:
+    $(bpftool) btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+```
+执行`make vmlinux`命令就可以生成vmlinux.h文件，再执行`make`就可以编译APPS里面配置的所有eBPF程序（多个程序之间以空格分隔）。
+
 ## 思考
 虽然使用bpftrace时还有很多的限制，但这个跟踪程序，其实已经可以用到短时进程问题的排查中了。因为通常来说，在解决短时进程引发的性能问题时，找出短时进程才是最重要的。至于短时进程的执行结果，我们一般可以通过日志看到详细的运行过程。不过，这个跟踪程序还是有一些比较大的限制，比如：
 - 没有输出时间戳，这样去大量日志里面定位问题就比较困难；
