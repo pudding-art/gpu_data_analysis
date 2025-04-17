@@ -1,4 +1,4 @@
-# eBPF编程范式
+# eBPF编程范式(eBPF核心技术与实战笔记)
 
 ## eBPF内核运行时
 eBPF程序并不像常规的线程那样，启动后就一直运行在那里，它需要事件触发后才会执行。这些事件包括系统调用、内核跟踪点、内核函数和用户态函数的调用退出、网络事件，等等。
@@ -265,12 +265,82 @@ sudo rm /sys/fs/bpf/stats_map
 
 虽然BTF和CO-RE很方便，但需要注意的是，它们都需要比较新的内核版本>=5.2，并且需要非常新的发行版(ubuntu20.10+等)才会默认打开内核配置CONFIG_DEBUG_INFO_BTF。对于旧版本内核，虽然它们不回再去内置BTF的支持，但开源社区正在尝试通过[BTFhub](https://github.com/aquasecurity/btfhub)等方法，为它们提供BTF调试信息。
 
+## 各类eBPF程序的触发机制及其应用场景
+eBPF程序类型决定了一个eBPF程序可以挂载的事件类型和事件参数，这也意味着，内核中不同事件会触发不同类型的eBPF程序。
+
+注意在bpf_prog_type的定义中，`BPF_PROG_TYPE_UNSPEC`表示未定义(Reserve 0 as invalid program type)。对于具体的内核来说，因为不同内核的版本和编译配置选项不同，一个内核并不会支持所有的程序类型。
+如下v6.11支持32种不同类型的eBPF程序：
+```shell
+hwt@hwt-VMware-Virtual-Platform:~$ sudo bpftool feature probe | grep program_type
+eBPF program_type socket_filter is available
+eBPF program_type kprobe is available
+eBPF program_type sched_cls is available
+eBPF program_type sched_act is available
+eBPF program_type tracepoint is available
+eBPF program_type xdp is available
+eBPF program_type perf_event is available
+eBPF program_type cgroup_skb is available
+eBPF program_type cgroup_sock is available
+eBPF program_type lwt_in is available
+eBPF program_type lwt_out is available
+eBPF program_type lwt_xmit is available
+eBPF program_type sock_ops is available
+eBPF program_type sk_skb is available
+eBPF program_type cgroup_device is available
+eBPF program_type sk_msg is available
+eBPF program_type raw_tracepoint is available
+eBPF program_type cgroup_sock_addr is available
+eBPF program_type lwt_seg6local is available
+eBPF program_type lirc_mode2 is NOT available
+eBPF program_type sk_reuseport is available
+eBPF program_type flow_dissector is available
+eBPF program_type cgroup_sysctl is available
+eBPF program_type raw_tracepoint_writable is available
+eBPF program_type cgroup_sockopt is available
+eBPF program_type tracing is available
+eBPF program_type struct_ops is available
+eBPF program_type ext is available
+eBPF program_type lsm is available
+eBPF program_type sk_lookup is available
+eBPF program_type syscall is available
+eBPF program_type netfilter is available
+```
+
+
+根据具体功能和应用场景的不同，这些程序类型大致可以划分为三类：
+- 第一类是跟踪，即<mark>从**内核和程序的运行状态**中提取跟踪信息，来了解当前系统正在发生什么;</mark>
+- 第二类是网络，即对网络数据包进行过滤和处理，以便了解和控制网络数据包的收发过程;
+- 第三类是除跟踪和网络之外的其他类型，包括安全控制、BPF扩展等等。
+
+### 跟踪类eBPF程序
+跟踪类eBPF程序主要用于从系统中提取跟踪信息，进而为监控、排错、性能优化等提供数据支撑。常见的跟踪类BPF程序的主要功能以及使用限制如下：
+![trace](image-15.png)
+这其中，KPROBE、TRACEPOINT以及PERF_EVENT都是最常用的eBPF程序类型，大量应用于监控跟踪、性能优化以及调试排错等场景中。BCC工具集中大多数工具属于这个类型。
+
+暂且理解BTF tracepoint就是用SEC()指定跟踪点那种方式。
+
+### 网络类eBPF程序
+络类 eBPF 程序主要用于对网络数据包进行过滤和处理，进而实现网络的观测、过滤、流量控制以及性能优化等各种丰富的功能。根据事件触发位置的不同，网络类eBPF程序又可以分为**XDP（eXpress Data Path，高速数据路径）程序、TC（Traffic Control，流量控制）程序、套接字（Socket）程序以及cgroup程序**。
+
+#### XDP程序
+XDP程序的类型定义为`BPF_PROG_TYPE_XDP`，它在网络驱动程序刚刚收到数据包时触发执行。由于无需通过繁杂的内核网络协议栈，XDP程序可用来实现高性能的网络处理方案，常用于**DDoS防御、防火墙、4层负载均衡**等场景。
+
+
+
+#### TC程序
+
+#### Socket程序
+
+#### cgroup程序
+
+### 其他类eBPF程序
+
 
 
 ## 总结
-一个完整的 eBPF 程序，通常包含用户态和内核态两部分：用户态程序需要通过 BPF 系统调用跟内核进行交互，进而完成 eBPF 程序加载、事件挂载以及映射创建和更新等任务；而在内核态中，eBPF 程序也不能任意调用内核函数，而是需要通过 BPF 辅助函数完成所需的任务。尤其是在访问内存地址的时候，必须要借助 bpf_probe_read 系列函数读取内存数据，以确保内存的安全和高效访问。在 eBPF 程序需要大块存储时，我们还需要根据应用场景，引入特定类型的 BPF 映射，并借助它向用户空间的程序提供运行状态的数据。
+一个完整的eBPF程序，通常包含用户态和内核态两部分：用户态程序需要通过BPF系统调用跟内核进行交互，进而完成eBPF程序加载、事件挂载以及映射创建和更新等任务；而在内核态中eBPF程序也不能任意调用内核函数，而是需要通过BPF辅助函数完成所需的任务。尤其是在访问内存地址的时候，必须要借助`bpf_probe_read`系列函数读取内存数据，以确保内存的安全和高效访问。在eBPF程序需要大块存储时，我们还需要根据应用场景，引入特定类型的BPF映射，并借助它向用户空间的程序提供运行状态的数据。
 
-BTF 和 CO-RE 项目，它们在提供轻量级调试信息的同时，还解决了跨内核版本的兼容性问题。很多开源社区的 eBPF 项目（如 BCC 等）也都在向 BTF 进行迁移。
+BTF和CO-RE项目，它们在提供轻量级调试信息的同时，还解决了跨内核版本的兼容性问题。很多开源社区的eBPF项目（如BCC等）也都在向BTF进行迁移。
 
 ## 其他思考
 
@@ -297,6 +367,14 @@ BTF 和 CO-RE 项目，它们在提供轻量级调试信息的同时，还解决
     ctrl-c其实终止的是用户空间的程序，终止后所有的文件描述符都会释放掉，对应的map和ebpf程序引用都会减到0，进而它们也就被自动回收了。这些都是自动的，不需要在程序里面增加额外的处理逻辑。
 
     当然，在需要长久保持eBPF程序的情境中（比如XDP和TC程序），eBPF程序和map的生命周期是可以在程序内控制的，比如通过 tc、ip 以及 bpftool 等工具（当然它们也都有相应的系统调用）。我们课程后面还会讲到相关的案例。
+5. 例如第一个ebpf程序，通过trace open系统调用来监控应用的open动作。那我实际中，有没有什么快速的方案/套路来完成一些其他的trace，例如我想知道监控那些程序使用了socket/bind(尤其适用于有些短暂进程使用udp发送了一些报文就立马退出了）。当我想新增一个trace事件，我的.c需要去包含哪些头文件，我的.py需要跟踪那个系统调用。这些头文件与系统调用在哪可以找到，如何去找？
+
+    https://github.com/iovisor/bpftrace。
+    查询跟踪点函数、查询系统调用格式、快速跟踪一个系统调用、网络socket的跟踪等等它都是支持的，并且用起来就像SHELL脚本一样方便。
+
+
+
+
 
 
 ## 参考文献
