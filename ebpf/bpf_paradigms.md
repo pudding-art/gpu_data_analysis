@@ -83,6 +83,7 @@ enum bpf_cmd {
 ### eBPF辅助函数
 eBPF程序并不能随意调用内核函数，因此，内核定义了一系列辅助函数，用于eBPF程序与内核的其他模块进行交互。比如`bpf_trace_printk()`是最常用的一个辅助函数，用于向调试文件系统(`/sys/kernel/debug/tracing/trace_pipe`)写入调试信息。
 
+可以使用如下指令查询当前系统支持的辅助函数列表：
 ```shell
 sudo bpftool feature probe # 查询当前系统支持的辅助函数列表
 
@@ -167,8 +168,52 @@ eBPF helpers supported for program type kprobe:
 	- bpf_user_ringbuf_drain
 	- bpf_cgrp_storage_get
 	- bpf_cgrp_storage_delete
-
 ```
+辅助函数的详细定义可以通过`man bpf-helpers`查看，或者参考内核头文件`include/uapi/linux/bpf.h`,来查看它们的详细定义和使用说明。常用的helpers如下图所示：
+![helpers](image-11.png)
+其中需要特别注意的是以`bpf_probe_read`开头的一系列函数，eBPF内部的内存空间只有寄存器和栈。所以，要访问其他的内核空间或用户空间的地址，就需要借助`bpf_probe_read`这一系列辅助函数。这些函数会进行安全性检查，并禁止缺页中断的发生。而在eBPF程序需要大块存储时，就不能像常规的内核代码那样去直接分配内存了，而是必须通过BPF map来完成。eBPF map之前学了很多，eBPF map可以被用户空间程序访问，进而获取eBPF程序的运行状态。eBPF程序最多可以访问64个不同的eBPF maps，并且不同的eBPF程序也可以通过相同的BPF map来共享他们的状态。6.11内核支持如下map类型,内核头文件`include/uapi/linux/bpf.h`中的`bpf_map_type`定义了所有支持的map类型：
+```shell
+hwt@hwt-VMware-Virtual-Platform:~$ sudo bpftool feature probe | grep map_type
+[sudo] password for hwt: 
+eBPF map_type hash is available
+eBPF map_type array is available
+eBPF map_type prog_array is available
+eBPF map_type perf_event_array is available
+eBPF map_type percpu_hash is available
+eBPF map_type percpu_array is available
+eBPF map_type stack_trace is available
+eBPF map_type cgroup_array is available
+eBPF map_type lru_hash is available
+eBPF map_type lru_percpu_hash is available
+eBPF map_type lpm_trie is available
+eBPF map_type array_of_maps is available
+eBPF map_type hash_of_maps is available
+eBPF map_type devmap is available
+eBPF map_type sockmap is available
+eBPF map_type cpumap is available
+eBPF map_type xskmap is available
+eBPF map_type sockhash is available
+eBPF map_type cgroup_storage is available
+eBPF map_type reuseport_sockarray is available
+eBPF map_type percpu_cgroup_storage is available
+eBPF map_type queue is available
+eBPF map_type stack is available
+eBPF map_type sk_storage is available
+eBPF map_type devmap_hash is available
+eBPF map_type struct_ops is available
+eBPF map_type ringbuf is available
+eBPF map_type inode_storage is available
+eBPF map_type task_storage is available
+eBPF map_type bloom_filter is available
+eBPF map_type user_ringbuf is available
+eBPF map_type cgrp_storage is available
+eBPF map_type arena is available
+```
+以下是最常用的map类型：
+
+![map_type](image-12.png)
+
+
 
 ## 参考文献
 1. 事件触发：各类eBPF程序的触发机制及其应用场景 https://time.geekbang.org/column/article/483364
