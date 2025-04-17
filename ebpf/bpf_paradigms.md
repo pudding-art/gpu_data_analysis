@@ -268,6 +268,7 @@ sudo rm /sys/fs/bpf/stats_map
 ## 各类eBPF程序的触发机制及其应用场景
 eBPF程序类型决定了一个eBPF程序可以挂载的事件类型和事件参数，这也意味着，内核中不同事件会触发不同类型的eBPF程序。
 
+
 注意在bpf_prog_type的定义中，`BPF_PROG_TYPE_UNSPEC`表示未定义(Reserve 0 as invalid program type)。对于具体的内核来说，因为不同内核的版本和编译配置选项不同，一个内核并不会支持所有的程序类型。
 如下v6.11支持32种不同类型的eBPF程序：
 ```shell
@@ -311,6 +312,8 @@ eBPF program_type netfilter is available
 - 第一类是跟踪，即<mark>从**内核和程序的运行状态**中提取跟踪信息，来了解当前系统正在发生什么;</mark>
 - 第二类是网络，即对网络数据包进行过滤和处理，以便了解和控制网络数据包的收发过程;
 - 第三类是除跟踪和网络之外的其他类型，包括安全控制、BPF扩展等等。
+
+虽然每个eBPF程序都有特定的类型和触发事件，但这并不意味着它们都是完全独立的。通过BPF映射提供的状态共享机制，各种不同类型的eBPF程序完全可以相互配合，不仅可以绕过单个eBPF程序指令数量的限制，还可以实现更为复杂的控制逻辑。
 
 ### 跟踪类eBPF程序
 跟踪类eBPF程序主要用于从系统中提取跟踪信息，进而为监控、排错、性能优化等提供数据支撑。常见的跟踪类BPF程序的主要功能以及使用限制如下：
@@ -416,10 +419,26 @@ sudo tc filter add dev eth0 egress bpf da obj tc-example.o sec egress
 #### cgroup程序
 cgroup程序用于对cgroup内所有进程的网络过滤、套接字选项以及转发等进行动态控制，它最典型的应用场景是对容器中运行的多个进程进行网络控制。cgroup程序的种类比较丰富，常见使用方法如下：
 ![cgroup](image-21.png)
+这些类型的BPF程序都可以通过BPF系统调用的BPF_PROG_ATTACH命令来进行挂载，并设置挂载类型为匹配的BPF_CGROUP_xxx类型。比如，在挂载BPF_PROG_TYPE_CGROUP_DEVICE类型的BPF程序时，需要设置bpf_attach_type为BPF_CGROUP_DEVICE：
 
+```c
+union bpf_attr attr = {};
+attr.target_fd = target_fd;            // cgroup文件描述符
+attr.attach_bpf_fd = prog_fd;          // BPF程序文件描述符
+attr.attach_type = BPF_CGROUP_DEVICE;  // 挂载类型为BPF_CGROUP_DEVICE
 
+if (bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) < 0) {
+  return -errno;
+}
+...
+```
 
+注意，这几类网络eBPF程序是在不同的事件触发时执行的，因此，在实际应用中我们通常可以**把多个类型的eBPF程序结合起来，一起使用，来实现复杂的网络控制功能**。比如，最流行的 Kubernetes网络方案Cilium就大量使用了XDP、TC 和套接字 eBPF 程序，如下图（图片来自 Cilium 官方文档，图中黄色部分即为 Cilium eBPF 程序）所示：
+![cilium](image-22.png)
 ### 其他类eBPF程序
+除了上面的跟踪和网络eBPF程序之外，Linux内核还支持很多其他的类型。这些类型的eBPF程序虽然不太常用，但在需要的时候也可以帮你解决很多特定的问题。
+![other](image-23.png)
+
 
 
 
@@ -459,7 +478,12 @@ BTF和CO-RE项目，它们在提供轻量级调试信息的同时，还解决了
     查询跟踪点函数、查询系统调用格式、快速跟踪一个系统调用、网络socket的跟踪等等它都是支持的，并且用起来就像SHELL脚本一样方便。
 
 
+6. ebpf可以阻断进程的行为吗，例如某个进程调用了write 系统调用，然后我应用ebpf阻断调用，不让这个进程调用write系统调用。这个可以用ebpf实现吗？
 
+    应该可以借助LSM BPF程序实现，可以参考一下https://www.kernel.org/doc/html/v5.9/bpf/bpf_lsm.html
+
+7. 原理：钩子就是系统在各个数据处理路径上放置的一个埋点（例如：map[int]func）,我们需要确定int值（枚举类型）和处理函数，处理路径上会查看map[特定值]下是否有函数，有就执行。
+应用：熟悉各个枚举值的位置（既作用）就能在实际工作中利用该技术解决实际问题。
 
 
 
