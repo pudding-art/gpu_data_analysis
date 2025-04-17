@@ -32,6 +32,7 @@ https://blog.spoock.com/2023/08/14/eBPF-Helloworld/
 图片来自 https://www.usenix.org/conference/lisa21/presentation/gregg-bpf
 
 
+![paradigms](image-24.png)
 ## 看懂熟悉libbpf-bootstrap的一个例子
 
 每个函数做了什么，获取数据源之后做了什么
