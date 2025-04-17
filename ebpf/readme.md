@@ -29,6 +29,8 @@ https://blog.spoock.com/2023/08/14/eBPF-Helloworld/
 了解eBPF的运行原理，eBPF程序是如何与内核进行交互的（编程接口），各类eBPF程序的触发机制及其应用场景。
 
 ![bpf_internals](image-7.png)
+图片来自 https://www.usenix.org/conference/lisa21/presentation/gregg-bpf
+
 
 ## 看懂熟悉libbpf-bootstrap的一个例子
 

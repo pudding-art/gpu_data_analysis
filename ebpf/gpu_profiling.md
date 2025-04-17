@@ -8,4 +8,4 @@
 7. DeepFlow https://deepflow.io/docs/zh/about/overview/
 8. 浅析eBPF KPROBE_OVEERRIDE在内核错误注入中的使用 https://zhuanlan.zhihu.com/p/2590022381
 9. 一次任务状态"失常"的踩坑记 https://www.cnblogs.com/liuhailong0112/p/17799599.html
-
+10. 使用ChatGPT,通过自然语言编写eBPF程序并追踪Linux系统 https://eunomia.dev/zh/blogs/GPTtrace/
