@@ -212,7 +212,91 @@ eBPF map_type arena is available
 以下是最常用的map类型：
 
 ![map_type](image-12.png)
+map的创建是在用户程序中通过create系统调用创建的，而map的删除没有对应的BPF系统调用，这是因为BPF map会在用户态程序关闭文件描述符时自动删除(即`close(fd)`)，如果你想在程序推出后还保留映射，就需要调用`BPF_OBJ_PIN`命令，将映射挂载到`/sys/fs/bpf`中。
 
+在调试BPF map相关的问题时，可以通过bpftool来查看或操作map的具体内容，比如，可以通过如下命令创建、更新、输出以及删除map：
+```shell
+sudo bpftool map create /sys/fs/bpf/stats_map type hash key 2 value 2 entries 8 name stats_map
+
+sudo bpftool map
+
+sudo bpftool map update name stats_map key 0xc1 0xc2 value 0xa1 0xa2
+
+sudo bpftool map dump name stats_map # 查看hash map stats_map中的内容
+
+sudo rm /sys/fs/bpf/stats_map
+```
+![alt text](image-13.png)
+
+
+正确的内核数据结构定义可以在调用bpf_probe_read等工具时，能够从内存地址中提取到正确的数据类型。但是，编译时依赖内核头文件也会带来很多问题。主要有这三个方面：
+1. 首先，在开发 eBPF 程序时，为了获得内核数据结构的定义，就需要引入一大堆的内核头文件；
+2. 其次，内核头文件的路径和数据结构定义在不同内核版本中很可能不同。因此，你在升级内核版本时，就会遇到**找不到头文件和数据结构定义错误**的问题；
+3. 最后，在很多生产环境的机器中，出于安全考虑，并不允许安装内核头文件，这时就无法得到内核数据结构的定义。在程序中重定义数据结构虽然可以暂时解决这个问题，但也很容易把使用着错误数据结构的 eBPF 程序带入新版本内核中运行。也有几种解决方案：
+    - 将BCC和开发工具都安装到容器中，容器本身不提供对外服务，这样可以降低安全风险
+    - Linux内核源码的samples/bpf目录下有eBPF示例，在那里开发一个匹配当前内核版本的eBPF程序，并编译为字节码，再分发到生产环境中；
+    - 使用libbpf开发一个BPF程序，只要内核已经支持了BPF类型格式(BPF Type Format, BTF)，可以使用从内核源码抽离出来的libbpf进行开发，这样可以借助BTF获得更好的移植性CO-RE。从内核5.2开始，只要开启了`CONFIG_DEBUG_INFO_BTF`，在编译内核时，内核数据结构的定义就会自动内嵌在内核二进制文件`vmlinux.h`中。并且，还可以借助如下命令，将这些数据结构导出到一个头文件中(通常命名为vmlinux.h)
+        ```shell
+        bpftool bpf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+        ```
+
+
+有了内核数据结构定义，在开发eBPF程序时只要引入一个vmlinux.h即可，不需要再引入一大堆头文件。
+![vmlinux](image-14.png) 参考： https://www.grant.pizza/blog/vmlinux-header/
+借助BTF,btftool等工具，也可以更好地了解BPF程序的内部信息，这也会让调试变得更加方便。比如在查看BPF map的内容时，可以直接查看到结构化的数据，而不只是十六进制的数值：
+```shell
+# bpftool map dump id 386
+[
+  {
+      "key": 0,
+      "value": {
+          "eth0": {
+              "value": 0,
+              "ifindex": 0,
+              "mac": []
+          }
+      }
+  }
+]
+```
+内核数据结构问题定义解决之后，就是如何让eBPF程序在内核升级之后，不需要重新编译就可以直接运行。eBPF的CO-RE借助了BTF提供的调试信息，再通过如下两个步骤，使得eBPF程序可以适配不同版本的内核：
+1. 通过对BPF代码中的访问偏移量进行重写，解决了不同内核版本中数据结构偏移量不同的问题；
+2. 在libbpf中预定义不同内核版本中的数据结构修改，解决了不同内核中数据结构不兼容的问题。
+
+虽然BTF和CO-RE很方便，但需要注意的是，它们都需要比较新的内核版本>=5.2，并且需要非常新的发行版(ubuntu20.10+等)才会默认打开内核配置CONFIG_DEBUG_INFO_BTF。对于旧版本内核，虽然它们不回再去内置BTF的支持，但开源社区正在尝试通过[BTFhub](https://github.com/aquasecurity/btfhub)等方法，为它们提供BTF调试信息。
+
+
+
+## 总结
+一个完整的 eBPF 程序，通常包含用户态和内核态两部分：用户态程序需要通过 BPF 系统调用跟内核进行交互，进而完成 eBPF 程序加载、事件挂载以及映射创建和更新等任务；而在内核态中，eBPF 程序也不能任意调用内核函数，而是需要通过 BPF 辅助函数完成所需的任务。尤其是在访问内存地址的时候，必须要借助 bpf_probe_read 系列函数读取内存数据，以确保内存的安全和高效访问。在 eBPF 程序需要大块存储时，我们还需要根据应用场景，引入特定类型的 BPF 映射，并借助它向用户空间的程序提供运行状态的数据。
+
+BTF 和 CO-RE 项目，它们在提供轻量级调试信息的同时，还解决了跨内核版本的兼容性问题。很多开源社区的 eBPF 项目（如 BCC 等）也都在向 BTF 进行迁移。
+
+## 其他思考
+
+1. bpf系统调用一定程度上参考了`perf_event_open`设计，`bpf_attr`、`perf_event_attr`均包含了大量union，用于适配不同的cmd或者性能监控事件类型。因此，`bpf`、`perf_event_open`接口看似简单，其实是大杂烩。
+    ```c
+    bpf(int cmd, union bpf_attr *attr, ...) 
+    perf_event_open(struct perf_event_attr *attr, ...)
+    ```
+2. bpftool命令设计风格重度参考了iproute2软件包中的ip命令，用法基本上一致。
+    ```shell
+    Usage: bpftool [OPTIONS] OBJECT { COMMAND | help }
+    Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }
+    ```
+    无论内核开发还是工具开发，都可以看到**设计思路借鉴**的影子。工作之余不妨多些学习与思考，也许就可以把大师们比较好的设计思路随手用于手头的任务之中。
+
+3. 在支持BTF的内核中，利用CO-RE编译出的ebpf程序可执行文件，直接copy到低版本不支持BTF的内核版本的系统上能正常运行吗？
+    不行的，它需要运行的内核也支持BTF。
+    不过现在最新的bpftool已经支持导出BTF，跟eBPF程序一通分发后也可以执行了。具体可以参考这个博客 https://www.inspektor-gadget.io//blog/2022/03/btfgen-one-step-closer-to-truly-portable-ebpf-programs/
+
+    从低版本到高版本的兼容性可以用CO-RE解决（CO-RE只在新版本内核才支持），而反过来就需要在eBPF内部加上额外的代码来处理了。比如根据内核版本作条件编译，低版本内核执行不同的逻辑。
+
+4. 关于bpf内核态程序的成名周期，比如前几节课的例子，如果我通过ctrl-c终端用户态程序的时候在bpf虚拟机会发生什么呢？我理解应该会结束已经加载的bpf指令，清理map之类的资源等等，具体会有哪些，这些操作是如何在我们程序中自动插入和实现?
+
+    ctrl-c其实终止的是用户空间的程序，终止后所有的文件描述符都会释放掉，对应的map和ebpf程序引用都会减到0，进而它们也就被自动回收了。这些都是自动的，不需要在程序里面增加额外的处理逻辑。
+
+    当然，在需要长久保持eBPF程序的情境中（比如XDP和TC程序），eBPF程序和map的生命周期是可以在程序内控制的，比如通过 tc、ip 以及 bpftool 等工具（当然它们也都有相应的系统调用）。我们课程后面还会讲到相关的案例。
 
 
 ## 参考文献
@@ -220,4 +304,6 @@ eBPF map_type arena is available
 2. 运行原理：eBPF是一个新的虚拟机吗？https://time.geekbang.org/column/article/481889
 3. 内核源码中SYSCALL_DEFINE3的实现 https://elixir.bootlin.com/linux/v5.4/source/kernel/bpf/syscall.c#L2837
 4. https://qiankunli.github.io/2022/01/07/ebpf.html
+5. vmlinux-header https://www.grant.pizza/blog/vmlinux-header/
+6. 编程接口 https://time.geekbang.org/column/article/482459
 
