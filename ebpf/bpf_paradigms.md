@@ -325,13 +325,99 @@ eBPF program_type netfilter is available
 #### XDP程序
 XDP程序的类型定义为`BPF_PROG_TYPE_XDP`，它在网络驱动程序刚刚收到数据包时触发执行。由于无需通过繁杂的内核网络协议栈，XDP程序可用来实现高性能的网络处理方案，常用于**DDoS防御、防火墙、4层负载均衡**等场景。
 
+XDP程序并不是绕过了内核协议栈，它只是在内核协议栈之前处理数据包，而处理过的数据包还可以正常通过内核协议栈继续处理(有点类似DPDK,SPDK的思路)。
 
+![xdp](image-16.png)
+图片来自：https://www.iovisor.org/technology/xdp
+
+根据网卡和网卡驱动是否原生支持XDP程序，XDP运行模式可以分为以下三种：
+- 通用模式。它不需要网卡和网卡驱动的支持，XDP程序像常规的网络协议栈一样运行在内核中，性能相对较差，一般用于测试；
+- 原生模式。它需要网卡驱动程序的支持，XDP程序在网卡驱动程序的早期路径运行；
+- 卸载模式。它需要网卡固件支持XDP卸载，XDP程序直接运行在网卡上，而不再需要消耗主机的CPU资源，具有最好的性能(这不就是类似于FPGA把CPU的某些任务卸载了吗，或者可计算网卡，只不过在软件上体现的)。
+
+无论哪种模式，XDP程序在处理过网络包之后，都需要根据eBPF程序执行结果，决定数据包的去处。这些执行结果对应以下5种XDP程序结果码：
+![code](image-17.png) 
+
+通常来说，XDP程序通过`ip link`命令加载到具体的网卡上，加载格式为:
+```shell
+# eth1 为网卡名
+# xdpgeneric 设置运行模式为通用模式
+# xdp-example.o 为编译后的 XDP 字节码
+sudo ip link set dev eth1 xdpgeneric object xdp-example.o
+```
+而卸载XDP程序也是通过ip link命令，具体参数如下：
+```shell
+sudo ip link set veth1 xdpgeneric off
+```
+
+除了ip link之外，BCC也提供了方便的库函数，让我们可以在同一个程序中管理XDP程序的生命周期：
+```python
+from bcc import BPF
+
+# 编译XDP程序
+b = BPF(src_file="xdp-example.c")
+fn = b.load_func("xdp-example", BPF.XDP)
+
+# 加载XDP程序到eth0网卡
+device = "eth0"
+b.attach_xdp(device, fn, 0)
+
+# 其他处理逻辑
+...
+
+# 卸载XDP程序
+b.remove_xdp(device)
+```
 
 #### TC程序
+TC程序的类型定义为`BPF_PROG_TYPE_SCHED_CLS`和`BPF_PROG_TYPE_SCHED_ACT`，分别作为Linux流量控制的分类器和执行器。Linux流量控制通过网卡队列、排队规则、分类器、过滤器以及执行器等，实现了对网络流量的整形调度和带宽控制。
+
+下图为HTB(Hierarchical Token Bucket,层级令牌桶)流量控制的工作原理：
+![htb](image-18.png)
+
+QDisc（Queueing Discipline）是流量控制的基础，它定义了数据包在接口上排队和调度的策略。QDisc决定了数据包如何被存储和发送，是流量控制的核心机制。QDisc可以分为以下两类：
+- 无类别（Classless）QDisc：简单的队列策略，如FIFO（先入先出）；
+- 有类别（Classful）QDisc：提供更细粒度的控制，允许创建基于类别的队列，用于复杂的服务质量策略；
+
+分类器用于识别和分类数据包，基于IP地址、端口、协议等属性，将数据包导向特定的QDisc或类别（Class）。分类器在QDisc中被调用，而不是其他地方。分类器返回一个判决结果给QDisc，QDisc据此将包enqueue到合适的类别。
+
+
+
+同XDP程序相比，TC程序可以直接获取内核解析后的网络报文数据结构`sk_buff`（XDP 则是 xdp_buff），并且可在网卡的接收和发送两个方向上执行（XDP则只能用于接收）。
+
+TC程序的执行位置：
+![tc](image-19.png)
+- 对于接收的网络包，TC程序在网卡接收（GRO）之后、协议栈处理（包括 IP层处理和iptables等）之前执行；
+- 对于发送的网络包，TC程序在协议栈处理（包括IP层处理和iptables等）之后、数据包发送到网卡队列（GSO）之前执行。
+
+除此之外，由于TC运行在内核协议栈中，不需要网卡驱动程序做任何改动，因而可以挂载到任意类型的网卡设备（包括容器等使用的虚拟网卡）上。同XDP程序一样，TC eBPF程序也可以通过Linux命令行工具来加载到网卡上，不过相应的工具要换成tc。可以通过下面的命令，分别加载接收和发送方向的eBPF程序:
+```shell
+# 创建 clsact 类型的排队规则
+sudo tc qdisc add dev eth0 clsact
+
+# 加载接收方向的 eBPF 程序
+sudo tc filter add dev eth0 ingress bpf da obj tc-example.o sec ingress
+
+# 加载发送方向的 eBPF 程序
+sudo tc filter add dev eth0 egress bpf da obj tc-example.o sec egress
+```
+
 
 #### Socket程序
 
+套接字程序用于**过滤、观测或重定向**套接字网络包，具体的种类也比较丰富。根据类型的不同，套接字eBPF程序可以挂载到**套接字（socket）、控制组（cgroup）以及网络命名空间（netns）**等各个位置。可以根据具体的应用场景，选择一个或组合多个类型的eBPF程序，去控制套接字的网络包收发过程。
+
+常用的应用场景和挂载方法如下：
+
+![socket](image-20.png)
+
+
+
 #### cgroup程序
+cgroup程序用于对cgroup内所有进程的网络过滤、套接字选项以及转发等进行动态控制，它最典型的应用场景是对容器中运行的多个进程进行网络控制。cgroup程序的种类比较丰富，常见使用方法如下：
+![cgroup](image-21.png)
+
+
 
 ### 其他类eBPF程序
 
@@ -384,4 +470,7 @@ BTF和CO-RE项目，它们在提供轻量级调试信息的同时，还解决了
 4. https://qiankunli.github.io/2022/01/07/ebpf.html
 5. vmlinux-header https://www.grant.pizza/blog/vmlinux-header/
 6. 编程接口 https://time.geekbang.org/column/article/482459
-
+7. XDP https://www.iovisor.org/technology/xdp
+8. TC Doc https://tldp.org/HOWTO/Traffic-Control-HOWTO/index.html
+9. http://linux-ip.net/articles/Traffic-Control-HOWTO/
+10. TC traffic control https://docs.cilium.io/en/v1.8/bpf/#tc-traffic-control
