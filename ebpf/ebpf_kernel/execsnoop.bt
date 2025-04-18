@@ -1,0 +1,18 @@
+#!/usr/bin/bpftrace
+
+#include <linux/sched.h>
+
+BEGIN
+{
+    printf("%-9s %-6s %-6s %-16s %s\n", "TIME", "PID", "PPID", "COMM", "ARGS")
+}
+
+tracepoint:syscalls:sys_enter_execve,
+tracepoint:syscalls:sys_enter_execveat
+{
+    $task = (struct task_struct *)curtask;
+
+    time("%H:%M:%S  ");
+    printf("%-6d %-6d %-16s", pid, $task->parent->tgid, comm);
+    join(args->argv);
+}
