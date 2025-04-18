@@ -6,9 +6,9 @@
 > 我不知道内核中都有哪些内核函数(kprobe)、内核跟踪点(tracepoint)或性能事件(perf events)的时候，可以在哪里查询到它们的列表呢？对于内核函数(kprobe)和内核跟踪点(tracepoint)，在需要跟踪它们的传入参数和返回值的时候，又该如何查询这些数据结构的定义格式呢？
 
 
-## 查询内核跟踪点
+## 查询内核跟踪点tracepoint和性能事件perf event
 
-### 方法一: 内核符号表 /proc/kallsyms
+### 方法一: /proc/kallsyms  内核符号表
 为了方便调试，内核将**所有函数以及非栈变量的地址**都抽取到了`/proc/kallsyms`中，这样调试器就可以根据地址找出对应的函数和变量。当调试器（如 gdb 等调试工具）需要知道某个内核函数或者非栈变量的地址时，就可以通过查询这个 “地址簿” 来获取。
 
 假设内核中有一个名为`sys_write`的函数，它用于处理写操作的系统调用。在内核编译完成后，这个函数会被加载到内存中的某个地址，比如 0xc1000000（这个地址是假设的，实际地址会根据内核的加载情况等因素而变化）。同时，内核中有一个全局变量`task_struct`，它用于描述一个进程的结构，这个变量被分配在内存地址 0xc2000000 处（同样也是假设的地址）。这些函数和变量的地址信息会被记录在`/proc/kallsyms`文件中。
@@ -62,11 +62,16 @@ c2000100 R kernel_version
 ![wc](image-1.png)
 这些符号表不仅包括了内核函数，还包含了非栈数据变量。而且<font color=blue>**并不是所有内核函数都是可跟踪的**</font>，只有<font color=red>**显式导出的内核函数**</font>才可以被eBPF进行动态跟踪。因而，**通常我们并不直接从内核符号表查询可跟踪点**。
 
-在Linux内核中，**显式导出的内核函数**是指通过使用`EXPORT_SYMBOL`宏明确向外界（如其他内核模块或eBPF程序）公开的内核函数。这些函数会被添加到内核的符号表中，使得其他模块或程序能够引用和调用它们。
+在Linux内核中，**显式导出的内核函数**是指通过使用`EXPORT_SYMBOL`宏明确向外界（如其他内核模块或eBPF程序）公开的内核函数。这些函数会被添加到内核的符号表中，使得其他模块或程序能够引用和调用它们。主要用于内核模块之间或内核与 eBPF 程序之间。**内核模块是独立的二进制文件**，通常在运行时动态加载到内核中。显式导出使得这些模块可以访问内核或其他模块中定义的符号。
 
 - `EXPORT_SYMBOL` ：用于导出普通内核函数，使其在内核符号表中可见。例如，EXPORT_SYMBOL(my_function) 会将 my_function 函数导出。
 - `EXPORT_SYMBOL_GPL` ：与 EXPORT_SYMBOL 类似，但导出的函数只能被GPL许可的模块使用。
 - `EXPORT_SYMBOL_GPL_FUTURE` ：用于导出未来可能会被修改的函数，提醒开发者谨慎使用。
+
+为什么要显式导出？
+- 模块间通信 ：内核由多个模块组成，这些模块需要相互通信和协作。通过显式导出函数或变量，模块可以共享功能和数据。例如，一个模块可以导出一些工具函数，供其他模块在需要时调用，从而实现代码复用和模块化设计。
+- 支持 eBPF 程序跟踪 ：eBPF 程序需要挂载到内核函数上进行动态跟踪。只有显式导出的内核函数才会出现在内核符号表中，eBPF 程序才能通过 kprobe 等机制在这些函数的入口或返回处插入探针，实现对内核行为的监控和分析。
+- 内核扩展性 ：显式导出允许内核模块扩展内核功能。第三方模块可以通过调用内核导出的函数来实现特定的功能，而无需修改内核源代码。这增强了内核的灵活性和可扩展性。
 ---
 ### 方法二:内核调试文件系统DebugFS
 
@@ -82,17 +87,24 @@ sudo mount -t debugfs debugfs /sys/kernel/debug
 ```
 注意，eBPF程序的执行也依赖于DebugFS。如果你的系统没有自动挂载它，那么我推荐你把它加入到系统开机启动脚本里面，这样机器重启后eBPF程序也可以正常运行。
 
-可以从/sys/kernel/debug/tracing中找到所有内核预定义的跟踪点，进而可以在需要时把eBPF程序挂载到对应的跟踪点。
+可以从`/sys/kernel/debug/tracing`l中找到所有内核预定义的跟踪点(tracepoint)，进而可以在需要时把eBPF程序挂载到对应的跟踪点。
 
-## 查询性能事件
-可以使用perf来查询性能事件，可以不带参数查询所有性能事件也可以加入可选的事件类型参数进行过滤：
+---
+
+### 方法三:查询性能事件 perf event
+
+可以使用perf来查询性能事件，可以不带参数查询所有性能事件,也可以加入可选的事件类型参数进行过滤：
 ```shell
 sudo perf list [hw|sw|cache|tracepoint|pmu|sdt|metric|metricgroup]
 ```
 
-## 利用bpftrace查询跟踪点
+---
 
-虽然你可以利用内核调试信息和perf工具查询内核函数、跟踪点以及性能事件的列表，但它们的位置比较分散，并且用这种方法也不容易查询内核函数的定义格式。在此使用bpftrace工具简化过程。bpftrace在eBPF和BCC之上构建了一个简化的跟踪语言，通过简单的几行脚本，就可以实现复杂的跟踪功能。并且，多行的跟踪指令也可以放到脚本文件中执行（脚本后缀通常为`.bt`）bpftrace 会把你开发的脚本借助 BCC 编译加载到内核中执行，再通过 BPF map获取执行的结果:
+### 方法四:利用bpftrace查询跟踪点
+
+虽然你可以利用内核调试信息DebugFS和perf工具查询内核函数、跟踪点以及性能事件的列表，但它们的位置比较分散，并且用这种方法也不容易查询内核函数的定义格式。在此使用bpftrace工具简化过程。
+
+bpftrace在eBPF和BCC之上构建了一个简化的跟踪语言，通过简单的几行脚本，就可以实现复杂的跟踪功能。并且，多行的跟踪指令也可以放到脚本文件中执行（脚本后缀通常为`.bt`）。bpftrace会把你开发的脚本借助BCC编译加载到内核中执行，再通过BPF map获取执行的结果:
 
 ![bpftrace](image-5.png)
 
@@ -109,7 +121,7 @@ sudo bpftrace -l 'tracepoint:syscalls:*'
 sudo bpftrace -l '*execve*'
 ```
 ![execve](image-6.png)
-对于tracepoints来说，还可以加上`-v`参数查询函数的入口参数或返回值。而由于内核函数属于不稳定的API，在bpftrace中只能通过`arg0、arg1`这样的参数来访问，具体的参数格式还需要参考内核源代码。
+对于**tracepoints**来说，还可以**加上`-v`参数查询函数的入口参数或返回值**。而**由于内核函数属于不稳定的API，在bpftrace中只能通过`arg0、arg1`这样的参数来访问，具体的参数格式还需要参考内核源代码**。
 
 比如，下面就是一个查询系统调用`execve`入口参数（对应系统调用`sys_enter_execve`）和返回值（对应系统调用`sys_exit_execve`）的示例:
 ```shell
@@ -128,10 +140,17 @@ tracepoint:syscalls:sys_exit_execve
     long ret
 ```
 
-所以，既可以通过内核调试信息和perf来查询内核函数、跟踪点以及性能事件的列表，也可以使用bpftrace工具来查询。更推荐使用更简单的bpftrace进行查询。因为，我们通常只需要在开发环境查询这些列表，以便去准备eBPF程序的挂载点。也就是说，虽然bpftrace依赖BCC和LLVM开发工具，但开发环境本来就需要这些库和开发工具。综合来看，用bpftrace工具来查询的方法显然更简单快捷。
+某个系统调用的入口参数和返回值分别去找`sys_enter_xxx`和`sys_exit_xxx`。
 
+---
+
+所以，既可以通过`内核调试信息`和`perf`来查询`内核函数、跟踪点以及性能事件`的列表，也可以使用`bpftrace`工具来查询。
+
+更推荐使用更简单的bpftrace进行查询。因为，我们通常只需要在开发环境查询这些列表，以便去准备eBPF程序的挂载点。也就是说，虽然bpftrace依赖BCC和LLVM开发工具，但开发环境本来就需要这些库和开发工具。综合来看，用bpftrace工具来查询的方法显然更简单快捷。
 
 > 在开发eBPF程序之前，你还需要在这些长长的函数列表中进行选择，确定你应该挂载到哪一个上。那么，具体该如何选择呢?
+
+
 
 ## 如何利用内核跟踪点排查短时进程问题？（主要学思路）
 
@@ -145,16 +164,16 @@ tracepoint:syscalls:sys_exit_execve
 
 
 
-要跟踪内核新创建的进程，首先得找到要跟踪的内核函数或跟踪点。创建一个新进程通常需要调用`fork()`和`execve()`这两个标准函数，它们的调用过程如下图所示:
+要跟踪内核新创建的进程，首先得找到要跟踪的内核函数(kprobe)或跟踪点(tracepoint)。创建一个新进程通常需要调用`fork()`和`execve()`这两个标准函数，它们的调用过程如下图所示:
 ![process](image-7.png)
 
-要获取新创建进程的基本信息，比如进程名称和参数，这些信息通常在 execve() 系统调用的参数中。execve() 是用户态程序用来执行新程序的系统调用。所以，为了在内核中跟踪这些信息，我们需要找到与 execve() 相关的内核函数或跟踪点：
+要获取新创建进程的基本信息，比如进程名称和参数，这些信息通常在`execve()`系统调用的参数中。`execve()`是用户态程序用来执行新程序的系统调用。所以，为了在内核中跟踪这些信息，我们需要找到与`execve()`相关的内核函数或跟踪点：
 
 ![execve](image-9.png)
 
 从输出中可以发现这些函数可以分为内核插桩（`kprobe`）和跟踪点（`tracepoint`）两类。内核插桩属于不稳定接口，而跟踪点则是稳定接口。因而，**在内核插桩和跟踪点两者都可用的情况下，应该选择更稳定的跟踪点**，以保证eBPF程序的可移植性（即在不同版本的内核中都可以正常执行）。
 
-排除掉kprobe类型之后，剩下的`tracepoint:syscalls:sys_enter_execve`、`tracepoint:syscalls:sys_enter_execveat`、`tracepoint:syscalls:sys_exit_execve`以及  `tracepoint:syscalls:sys_exit_execveat` 就是我们想要的eBPF跟踪点。其中，`sys_enter_`和`sys_exit_`分别表示在系统调用的入口和出口执行。
+排除掉kprobe类型之后，剩下的`tracepoint:syscalls:sys_enter_execve`、`tracepoint:syscalls:sys_enter_execveat`、`tracepoint:syscalls:sys_exit_execve`以及  `tracepoint:syscalls:sys_exit_execveat` 就是我们想要的eBPF跟踪点。其中，<mark>`sys_enter_`和`sys_exit_`分别表示在**系统调用的入口和出口**执行</mark>。
 
 
 只有跟踪点的列表还不够，因为我们还想知道**具体启动的进程名称、命令行选项以及返回值**，而这些也都可以通过bpftrace来查询。在命令行中执行下面的命令，即可查询：
@@ -192,16 +211,19 @@ tracepoint:syscalls:sys_exit_execveat
 
 ![alt text](image-10.png)
 
-从输出中可以看到，`sys_enter_execveat()`比`sys_enter_execve()` 多了两个参数，而文件名filename、命令行选项argv以及返回值ret的定义都是一样的。
+从输出中可以看到，`sys_enter_execveat()`比`sys_enter_execve()`多了两个参数，而文件名filename、命令行选项argv以及返回值ret的定义都是一样的。
 
+---
+
+### 开发eBPF的3种不同方式
 使用3种不同方式开发eBPF：
 - bpftrace通常用在<mark>**快速排查和定位系统**</mark>上，它支持用单行脚本的方式来快速开发并执行一个eBPF程序。不过，bpftrace的功能有限，不支持特别复杂的eBPF程序，也依赖于BCC和LLVM动态编译执行。
 - BCC通常用在开发复杂的eBPF程序中，其内置的各种小工具也是目前应用最为广泛的eBPF小程序。不过，BCC也不是完美的，它依赖于LLVM和内核头文件才可以动态编译和加载eBPF程序。
-- libbpf 是从内核中抽离出来的标准库，用它开发的eBPF程序可以直接分发执行，这样就不需要每台机器都安装LLVM和内核头文件了。不过，它要求内核开启BTF特性，需要非常新的发行版才会默认开启（如RHEL 8.2+和Ubuntu 20.10+等）。
+- libbpf是从内核中抽离出来的标准库，用它开发的eBPF程序可以直接分发执行，这样就不需要每台机器都安装LLVM和内核头文件了。不过，它要求内核开启BTF特性，需要非常新的发行版才会默认开启（如RHEL 8.2+和Ubuntu 20.10+等）。
 
 在实际应用中，你可以根据你的内核版本、内核配置、eBPF程序复杂度，以及是否允许安装内核头文件和LLVM等编译工具等，来选择最合适的方案。
 
-### bpftrace方法
+### 方法一:bpftrace方法
 由于`execve()`和`execveat()`这两个系统调用的入口参数文件名  filename和命令行选项argv，以及返回值ret的定义都是一样的，因而我们可以把这两个跟踪点放到一起来处理。
 
 
@@ -212,36 +234,42 @@ sudo bpftrace -e 'tracepoint:syscalls:sys_enter_execve,tracepoint:syscalls:sys_e
 在另一个终端输入ls，就会看到如下输出：
 ![bpftrace](image-11.png)
 
-- `bpftrace -e`表示直接从后面的字符串参数中读入bpftrace程序（除此之外，它还支持从文件中读入 bpftrace 程序）；
-- `tracepoint:syscalls:sys_enter_execve`,`tracepoint:syscalls:sys_enter_execveat`表示用逗号分隔的多个跟踪点，其后的中括号表示跟踪点的处理函数；
-- printf()表示向终端中打印字符串，其用法类似于C语言中的  printf()  函数；
+- `bpftrace -e`表示直接从后面的字符串参数中读入bpftrace程序（除此之外，它还支持从文件中读入bpftrace程序,`.bt`脚本）；
+- `tracepoint:syscalls:sys_enter_execve`,`tracepoint:syscalls:sys_enter_execveat`表示用逗号分隔的多个跟踪点，其后的**中括号表示跟踪点的处理函数**；
+- `printf()`表示向终端中打印字符串，其用法类似于C语言中的  printf()  函数；
 - **pid和comm是bpftrace内置的变量，分别表示进程PID和进程名称（你可以在其官方文档中找到其他的内置变量）**；
-- join(args->argv)  表示把字符串数组格式的参数用空格拼接起来，再打印到终端中。对于tracepoints来说，可以使用`args->参数名`的方式直接读取参数（比如这里的`args->argv`就是读取系统调用中的`argv`参数）。
+- `join(args->argv)` 表示把字符串数组格式的参数用空格拼接起来，再打印到终端中。对于tracepoints来说，可以使用`args->参数名`的方式直接读取参数（比如这里的`args->argv`就是读取系统调用中的`argv`参数）。
 
-不过，这个程序还不够完善，因为它的返回值还没有处理。
+不过，这个程序还不够完善，因为它的返回值还没有处理。一个最简单的思路就是在系统调用的入口把参数保存到BPF映射中，然后再在系统调用出口获取返回值后一起输出。
 
 ```shell
 # 其中，tid表示线程ID，@execs[tid]表示创建一个哈希map
 sudo bpftrace -e 'tracepoint:syscalls:sys_enter_execve,tracepoint:syscalls:sys_enter_execveat {@execs[tid] = join(args->argv);}'
+
+# another choice
+sudo bpftrace -e '
+tracepoint:syscalls:sys_enter_execve, tracepoint:syscalls:sys_enter_execveat {
+    @execs[tid] = join(args->argv);
+}
+
+tracepoint:syscalls:sys_exit_execve, tracepoint:syscalls:sys_exit_execveat {
+    if (@execs[tid] != NULL) {
+        printf("Executed command: %s, Return value: %d\n", @execs[tid], args->ret);
+        delete(@execs[tid]);
+    }
+}'
 ```
 ![error](image-12.png)
+
+![error](image-14.png)
 
 实际上，在bpftrace的GitHub页面上，已经有其他用户汇报了同样的问题，并且到现在还是没有解决。bpftrace本身并不适用于所有的eBPF应用。如果是复杂的应用，还是推荐使用BCC或者libbpf开发。
 
 
-BPF map的作用：
-- 保存数据：在系统调用的入口，可以将系统调用的参数（如进程 ID、命令名、参数列表等）保存到 BPF map中。
-- 获取数据：在系统调用的出口，可以从 BPF map中获取之前保存的参数，并结合系统调用的返回值一起输出。
-
-实现步骤：
-- 步骤 1：在入口事件中保存参数到 BPF map
-在系统调用的入口事件（如 sys_enter_execve）中，将参数保存到 BPF ma p中。BPF map通常使用进程 ID（PID）作为键，参数数据作为值。
-- 步骤 2：在出口事件中从 BPF map获取参数并输出
-在系统调用的出口事件（如 sys_exit_execve）中，使用相同的键（如 PID）从 BPF map中获取之前保存的参数，并结合系统调用的返回值一起输出。
 
 
 
-### BCC方法（后续再看）
+### 方法二:BCC方法（后续再看）
 
 
 为了在系统调用入口跟踪点和出口跟踪点间共享进程信息等数据，我们可以定义一个哈希映射（比如命名为tasks）；同样地，因为我们想要在用户空间实时获取跟踪信息，这就需要一个性能事件映射。哈希映射（BPF_HASH）和性能事件映射（BPF_PERF_OUTPUT）在内核跟踪中扮演不同的角色，各自有不同的功能和用途。
@@ -276,8 +304,17 @@ BPF_PERF_OUTPUT 特别适合需要实时监控和分析的场景，如性能分�
 BPF 映射更适合在内核空间中存储和共享数据，特别是在系统调用的入口和出口之间传递数据。
 
 
-#### 1. 数据结构定义
 
+#### 1. 数据结构定义
+BPF map的作用：
+- 保存数据：在系统调用的入口，可以将系统调用的参数（如进程 ID、命令名、参数列表等）保存到 BPF map中。
+- 获取数据：在系统调用的出口，可以从 BPF map中获取之前保存的参数，并结合系统调用的返回值一起输出。
+
+实现步骤：
+- 步骤 1：在入口事件中保存参数到 BPF map
+在系统调用的入口事件（如 sys_enter_execve）中，将参数保存到 BPF ma p中。BPF map通常使用进程 ID（PID）作为键，参数数据作为值。
+- 步骤 2：在出口事件中从 BPF map获取参数并输出
+在系统调用的出口事件（如 sys_exit_execve）中，使用相同的键（如 PID）从 BPF map中获取之前保存的参数，并结合系统调用的返回值一起输出。
 
 #### 2. 入口跟踪点处理
 
@@ -289,7 +326,7 @@ BPF 映射更适合在内核空间中存储和共享数据，特别是在系统�
 #### 4. Python前端处理
 
 
-### libbpf方法
+### 方法三:libbpf方法
 使用libbpf开发eBPF程序就可以通过以下四个步骤完成：
 1. 使用bpftool生成内核数据结构定义头文件。BTF开启后，你可以在系统中找到/sys/kernel/btf/vmlinux这个文件，bpftool正是从它生成了内核数据结构头文件。
 2. 开发eBPF程序部分。为了方便后续通过统一的Makefile编译，eBPF程序的源码文件一般命名为<程序名>.bpf.c。
