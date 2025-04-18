@@ -355,6 +355,13 @@ vmlinux:
 
 ---
 
+在实际的应用中，这三种方法有不同的使用场景：
+- bpftrace 通常用在快速排查和定位系统上，它支持用单行脚本的方式来快速开发并执行一个 eBPF 程序；
+- BCC 通常用在开发复杂的 eBPF 程序中，它内置的各种小工具也是目前应用最为广泛的 eBPF 小程序；
+- libbpf 是从内核中抽离出来的标准库，用它开发的 eBPF 程序可以直接分发执行，不再需要在每台机器上都安装 LLVM 和内核头文件。
+
+通常情况下，你可以用 bpftrace 或 BCC 做一些快速原型，验证你的设计思路是不是可行，然后再切换到 libbpf ，开发完善的 eBPF 程序后再去分发执行。这样，不仅 eBPF 程序运行得更快（无需编译步骤），还避免了在运行环境中安装开发工具和内核头文件。在不支持 BTF 的机器中，如果不想在运行 eBPF 时依赖于 LLVM 编译和内核头文件，你还可以参考内核中的BPF示例，直接引用内核源码中的`tools/lib/bpf/`  库，以及内核头文件中的数据结构，来开发 eBPF 程序。
+
 虽然这三种方法的步骤和实现代码各不相同，但实际上它们的实现逻辑都是类似的，无非就是**找出跟踪点，然后在eBPF部分获取想要的数据并保存到BPF映射中，最后在用户空间程序中读取BPF映射的内容并输出出来**。
 
 ## 思考
@@ -393,4 +400,5 @@ sudo bpftrace -e 'tracepoint:syscalls:sys_enter_execve,tracepoint:syscalls:sys_e
 3. bpftrace https://github.com/bpftrace/bpftrace/blob/master/docs/reference_guide.md
 4. 内核跟踪 https://time.geekbang.org/column/article/484372
 5. eBPF内存访问验证细节 https://sysdig.com/blog/the-art-of-writing-ebpf-programs-a-primer/
+6. 命名参考定义 https://github.com/libbpf/libbpf/blob/master/src/libbpf.c#L8599-L8675
 
