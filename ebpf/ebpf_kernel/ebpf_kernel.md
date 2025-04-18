@@ -329,7 +329,7 @@ BPF map的作用：
 ### 方法三:libbpf方法
 使用libbpf开发eBPF程序就可以通过以下四个步骤完成：
 1. 使用bpftool生成内核数据结构定义头文件。BTF开启后，你可以在系统中找到/sys/kernel/btf/vmlinux这个文件，bpftool正是从它生成了内核数据结构头文件。
-2. 开发eBPF程序部分。为了方便后续通过统一的Makefile编译，eBPF程序的源码文件一般命名为<程序名>.bpf.c。
+2. 开发eBPF程序部分。为了方便后续通过统一的Makefile编译，eBPF程序的源码文件一般命名为`<程序名>.bpf.c`。
 3. 编译eBPF程序为字节码，然后再调用`bpftool gen skeleton`为eBPF 字节码生成**脚手架头文件（Skeleton Header）**。这个头文件包含了eBPF字节码以及相关的加载、挂载和卸载函数，可在用户态程序中直接调用。
 4. 最后就是用户态程序引入上一步生成的头文件，开发用户态程序，包括eBPF程序加载、挂载到内核函数和跟踪点，以及通过BPF映射获取和打印执行结果等。
 
@@ -353,11 +353,31 @@ vmlinux:
 ```
 执行`make vmlinux`命令就可以生成vmlinux.h文件，再执行`make`就可以编译APPS里面配置的所有eBPF程序（多个程序之间以空格分隔）。
 
+---
+
+虽然这三种方法的步骤和实现代码各不相同，但实际上它们的实现逻辑都是类似的，无非就是**找出跟踪点，然后在eBPF部分获取想要的数据并保存到BPF映射中，最后在用户空间程序中读取BPF映射的内容并输出出来**。
+
 ## 思考
 虽然使用bpftrace时还有很多的限制，但这个跟踪程序，其实已经可以用到短时进程问题的排查中了。因为通常来说，在解决短时进程引发的性能问题时，找出短时进程才是最重要的。至于短时进程的执行结果，我们一般可以通过日志看到详细的运行过程。不过，这个跟踪程序还是有一些比较大的限制，比如：
 - 没有输出时间戳，这样去大量日志里面定位问题就比较困难；
 - 没有父进程PID，还需要一些额外的工具或经验，才可以找出父进程。
 那么，这些问题该如何解决呢？你可以在今天的bpftrace脚本基础上改进，把时间戳和父进程PID也输出到结果中吗？
+
+
+使用 BCC 和 libbpf 开发的 eBPF 程序虽然可以正常运行，但还有不少小问题，比如：单个参数过长，或者总的参数数量比较多时，都会被截断，没法完整显示所有的参数列表；在调试短时进程问题时，很多情况下我们可能还需要父进程的信息，这样才能更快定位它们都是被哪些进程创建出来的。
+
+1. 对于参数问题，当前 BPF 程序尝试把所有参数一次性放入，受限于栈最大长度 512，很容易出现被截断现象。以 BCC 程序为例的解决方法：**遍历参数列表 argv 时，每个参数读取之后直接调用 perf_submit 提交至 ringbuf，而不是读取所有参数后仅提交一次，最后用户态程序负责把这些字符串拼接起来**。这样可以做到参数最大个数不受限制，且每个参数长度可接近栈最大长度 512（当前 BPF 程序限制 64 容易被截断）。
+
+另一个解决方式应该可以采用 perf-cpu array 映射类型，避免占用有限的栈空间，具体没尝试过。
+
+2. 以 BCC 程序为例获取父进程，struct data_t 增加 ppid 字段，然后由 
+task->real_parent->tgid 赋值。
+```
+struct task_struct *task;
+
+task = (struct task_struct *)bpf_get_current_task();
+data.ppid = task->real_parent->tgid;
+```
 
 ```shell
 sudo bpftrace -e 'tracepoint:syscalls:sys_enter_execve,tracepoint:syscalls:sys_enter_execveat { time("%H:%M:%S ");printf("%-6d %-6d %-8s ", pid,curtask->parent->pid, comm); join(args->argv)}'
@@ -371,3 +391,6 @@ sudo bpftrace -e 'tracepoint:syscalls:sys_enter_execve,tracepoint:syscalls:sys_e
 1. 内核跟踪 https://time.geekbang.org/column/article/484207
 2. DebugFS https://www.kernel.org/doc/html/latest/filesystems/debugfs.html
 3. bpftrace https://github.com/bpftrace/bpftrace/blob/master/docs/reference_guide.md
+4. 内核跟踪 https://time.geekbang.org/column/article/484372
+5. eBPF内存访问验证细节 https://sysdig.com/blog/the-art-of-writing-ebpf-programs-a-primer/
+
