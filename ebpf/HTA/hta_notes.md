@@ -34,18 +34,6 @@
 
 - [] 如何设计，如何知道需要探测这些数据？
 
-## ftrace_analysis_demo.ipynb
-
-```python
-
-
-
-
-# Frequent CUDA kernel patterns
-frequent_patterns_df = analyzer.get_frequent_cuda_kernel_patterns(operator_name="aten::linear", output_dir="/new/trace/path")
-
-
-```
 
 ### Temporal breakdown
 https://github.com/facebookresearch/HolisticTraceAnalysis/blob/main/examples/trace_analysis_demo.ipynb
@@ -224,6 +212,7 @@ idle_time_df = analyzer.get_idle_time_breakdown()
 - 内存带宽 (Memory copy bandwidth)：显示在不同内存之间（如主机到设备、设备到主机、设备到设备）的数据传输速率的时间序列。
 
 
+
 ```python
 analyzer.generate_trace_with_counters(
     time_series: Optional[hta.trace_analysis.TimeSeriesTypes] = None, #指定要添加的时间序列类型。可选值为 TimeSeriesTypes.QUEUE_LENGTH（队列长度）和 TimeSeriesTypes.MEMCPY_BANDWIDTH（内存带宽）。默认情况下，两者都会被添加。
@@ -335,8 +324,162 @@ frequent_cuda_kernels = analyzer.get_frequent_cuda_kernel_sequences(
     visualize=False               # 指定是否生成可视化结果
 )
 
+# Frequent CUDA kernel patterns
+frequent_patterns_df = analyzer.get_frequent_cuda_kernel_patterns(operator_name="aten::linear", output_dir="/new/trace/path")
+
+
 # print(frequent_cuda_kernels)
 ```
 
 分析工具会识别在指定操作中启动的 CUDA 内核序列。该功能生成一个新的追踪文件，将识别出的最常见的 k 个内核模式叠加在原始追踪文件上。通过在新追踪文件中搜索“Patterns”关键词，相关 CPU 和 GPU 操作会被高亮显示，提示开发者关注这些位置以寻找内核融合或其他优化机会。"Patterns" 指的是特定的 CUDA 内核调用序列或组合。这些模式代表了在代码执行过程中频繁出现的内核调用系列。
 
+## HTA环境配置
+
+环境配置如下：
+```python
+python3 -m venv ~/hta_env
+sudo apt install python3.12-venv
+source ~/hta-venv/bin/activate
+
+cd HolisticTraceAnalysis/
+pip install -r requirements.txt
+pip install -e .
+```
+
+
+
+```python
+import inspect
+from hta.trace_analysis import TraceAnalysis
+
+
+hta_dir = "/home/hwt/HolisticTraceAnalysis"
+trace_dir = hta_dir + "/tests/data/vision_transformer"
+
+analyzer = TraceAnalysis(trace_dir = trace_dir)
+
+# print(type(analyzer))
+
+time_spent_df = analyzer.get_temporal_breakdown(visualize=False)
+
+print(inspect.getsource(analyzer.get_temporal_breakdown))
+
+kernel_type_metrics_df, kernel_metrics_df = analyzer.get_gpu_kernel_breakdown(visualize = False, 
+                                                                              duration_ratio = 0.8,
+                                                                              num_kernels = 5,
+                                                                              include_memory_kernels = True)
+
+
+print(kernel_type_metrics_df)
+print("################")
+print(kernel_metrics_df)
+```
+
+```shell
+(hta_venv) hwt@hwt-VMware-Virtual-Platform:~/HolisticTraceAnalysis/workspace$ python3 test.py 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-1.json.gz time = 1.55 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-0.json.gz time = 1.57 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-0.json.gz backend=ParserBackend.JSON in 5.49 seconds; current PID:23857
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-1.json.gz backend=ParserBackend.JSON in 5.53 seconds; current PID:23858
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-0.json.gz in 6.71 seconds; current PID:23857
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-1.json.gz in 6.74 seconds; current PID:23858
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-2.json.gz time = 1.62 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-3.json.gz time = 1.61 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-2.json.gz backend=ParserBackend.JSON in 5.65 seconds; current PID:23857
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-3.json.gz backend=ParserBackend.JSON in 5.58 seconds; current PID:23858
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-2.json.gz in 6.56 seconds; current PID:23857
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-3.json.gz in 6.65 seconds; current PID:23858
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-4.json.gz time = 1.74 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-5.json.gz time = 1.64 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-4.json.gz backend=ParserBackend.JSON in 5.71 seconds; current PID:23857
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-5.json.gz backend=ParserBackend.JSON in 5.66 seconds; current PID:23858
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-4.json.gz in 6.76 seconds; current PID:23857
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-5.json.gz in 6.74 seconds; current PID:23858
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-6.json.gz time = 1.82 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-7.json.gz time = 1.69 seconds 
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-6.json.gz backend=ParserBackend.JSON in 5.62 seconds; current PID:23857
+Parsed /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-7.json.gz backend=ParserBackend.JSON in 5.32 seconds; current PID:23858
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-6.json.gz in 6.53 seconds; current PID:23857
+Overall parsing of /home/hwt/HolisticTraceAnalysis/tests/data/vision_transformer/rank-7.json.gz in 6.43 seconds; current PID:23858
+leaving parse_multiple_ranks duration=31.96 seconds
+leaving parse_traces duration=31.96 seconds
+   rank  idle_time(us)  compute_time(us)  non_compute_time(us)  kernel_time(us)  idle_time_pctg  compute_time_pctg  non_compute_time_pctg
+0     0       552069.0          596651.0              884850.0        2033570.0           27.15              29.34                  43.51
+1     1       431771.0          596759.0             1004227.0        2032757.0           21.24              29.36                  49.40
+2     2       312107.0          596886.0             1124788.0        2033781.0           15.35              29.35                  55.31
+3     3       274646.0          604137.0             1154491.0        2033274.0           13.51              29.71                  56.78
+4     4       418833.0          598040.0             1021824.0        2038697.0           20.54              29.33                  50.12
+5     5       318972.0          601581.0             1112561.0        2033114.0           15.69              29.59                  54.72
+6     6       388040.0          598029.0             1047787.0        2033856.0           19.08              29.40                  51.52
+7     7       454830.0          599358.0              979022.0        2033210.0           22.37              29.48                  48.15
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+/home/hwt/HolisticTraceAnalysis/hta/analyzers/breakdown_analysis.py:517: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  kernel_t_df.melt(var_name="status", value_name="time").replace(
+                             kernel_type      sum  percentage
+0                          COMMUNICATION  8040285        61.3
+1                            COMPUTATION  2671248        20.4
+2  COMPUTATION overlapping COMMUNICATION  2119629        16.2
+3                                 MEMORY   273227         2.1
+4       COMMUNICATION overlapping MEMORY    16038         0.1
+5         COMPUTATION overlapping MEMORY      564         0.0
+################
+                                                  name  sum (us)  max (us)  min (us)       stddev    mean (us)    kernel_type  rank
+0    ncclKernel_AllGather_RING_LL_Sum_int8_t(ncclWo...  627683.0   10787.0      83.0  1651.592760  1687.319892  COMMUNICATION     0
+1    ncclKernel_AllGather_RING_LL_Sum_int8_t(ncclWo...  644435.0   10884.0      82.0  1705.334758  1732.352151  COMMUNICATION     1
+2    ncclKernel_AllGather_RING_LL_Sum_int8_t(ncclWo...  640631.0   10665.0      79.0  1700.774025  1722.126344  COMMUNICATION     2
+3    ncclKernel_AllGather_RING_LL_Sum_int8_t(ncclWo...  643073.0   10834.0      81.0  1727.301230  1728.690860  COMMUNICATION     3
+4    ncclKernel_AllGather_RING_LL_Sum_int8_t(ncclWo...  630605.0   10785.0      80.0  1656.166440  1695.174731  COMMUNICATION     4
+..                                                 ...       ...       ...       ...          ...          ...            ...   ...
+107                                    Memset (Device)    1134.0      13.0       1.0     0.807700     1.403465         MEMORY     3
+108                                    Memset (Device)    1084.0       8.0       1.0     0.739841     1.341584         MEMORY     4
+109                                    Memset (Device)    1073.0      14.0       1.0     0.818079     1.327970         MEMORY     5
+110                                    Memset (Device)    1038.0       7.0       1.0     0.693866     1.284653         MEMORY     6
+111                                    Memset (Device)    1064.0      13.0       1.0     0.779930     1.316832         MEMORY     7
+
+[112 rows x 8 columns]
+```
