@@ -47,17 +47,6 @@ idle_time_df = analyzer.get_idle_time_breakdown()
 frequent_patterns_df = analyzer.get_frequent_cuda_kernel_patterns(operator_name="aten::linear", output_dir="/new/trace/path")
 
 
-# Memory bandwidth time series
-memory_bw_series = analyzer.get_memory_bw_time_series()
-
-# Memory bandwidth summary
-memory_bw_summary = analyzer.get_memory_bw_summary()
-
-# Queue length time series
-ql_series = analyzer.get_queue_length_time_series()
-
-# Queue length summary
-ql_summary = analyzer.get_queue_length_summary()
 ```
 
 ### Temporal breakdown
@@ -198,16 +187,65 @@ print(aggregated_df)
 
 
 ### Communication Computation Overlap
+Communication Computation Overlap 是一个重要的性能指标，用于衡量在分布式计算中通信和计算重叠的程度。这个指标可以帮助开发者了解通信和计算任务是否高效地并行执行，从而优化程序性能。
+Communication Computation Overlap 的计算公式为：
 
+​![comp](image.png)
+ 
+- Time Spent Computing While Communicating：在通信操作（如数据传输）进行的同时，GPU 或 CPU 仍在执行计算任务的时间。
+- Total Time Spent Communicating：通信操作的总时间。
 
+需要知道时间戳和duration。
 
 ```python
 # Communication computation overlap
 comm_comp_overlap_df = analyzer.get_comm_comp_overlap()
 ```
-### Augmented Counters(Queue Length and Memory Bandwidth)
-```python
+### Idle time breakdown(对第一个功能的进一步细分)
+对GPU的idle time进行进一步分解，分为Host等待时间、内核等待时间和其他等待时间。可以据此定位导致GPU空闲的具体原因，从而采取针对性的优化措施。
 
+- Host wait time：由于CPU线程没有向GPU队列中添加足够的内核任务，导致GPU流（stream）处于空闲状态的时间。通常是因为CPU的准备工作（如数据预处理、任务调度等）耗时较长，无法及时为GPU提供足够的任务。可以优化CPU代码，减少数据预处理时间，或者调整任务调度逻辑，使CPU能更高效地为GPU提供任务。也可以考虑增加 GPU的并行任务，减少GPU等待CPU的时间。
+- Kernel wait time: 内核之间短暂的空闲时间，通常是因为启动多个小型内核的开销导致的。当多个小内核依次执行时，内核启动和切换会有一定的延迟，这些延迟累积起来就形成了内核等待时间。如果内核之间的间隔小于设定的阈值（如 30 毫秒），则将这些间隔归类为内核等待时间。尽量减少小型内核的使用频率，将多个小型内核合并为一个较大的内核，以减少内核启动和切换的开销。或者优化内核启动逻辑，降低内核启动的延迟。
+- Other wait time:由于未知原因导致的GPU空闲时间。可能是因为计算内核在等待CUDA事件，或者其他未明确识别的原因。需要进一步分析和调试代码，找出导致GPU空闲的具体原因。可以使用更详细的性能分析工具或调试器，检查CUDA事件的同步逻辑，确保内核之间能够高效协作，减少不必要的等待时间。
+
+
+- idle_tile_df = rank stream idle_category idle_time idle_time_ratio
+
+- interval_stats_df = idle_category rank stream count(所有的idle intervals数量) mean(idle time/count) std min 25% 50% 75% max
+
+### Augmented Counters(Queue Length and Memory Bandwidth)
+向追踪数据中添加额外的计数器和时间序列信息，以便更全面地分析GPU的性能。
+- 队列长度 (Queue Length)：表示在某个CUDA流中尚未完成的CUDA操作的数量。
+- 内存带宽 (Memory copy bandwidth)：显示在不同内存之间（如主机到设备、设备到主机、设备到设备）的数据传输速率的时间序列。
+
+
+```python
+analyzer.generate_trace_with_counters(
+    time_series: Optional[hta.trace_analysis.TimeSeriesTypes] = None, #指定要添加的时间序列类型。可选值为 TimeSeriesTypes.QUEUE_LENGTH（队列长度）和 TimeSeriesTypes.MEMCPY_BANDWIDTH（内存带宽）。默认情况下，两者都会被添加。
+    ranks: Optional[List[int]] = None, # 指定要生成计数器的 rank 列表。默认为 [0]。
+    output_suffix: str = '_with_counters', # 指定生成的追踪文件的后缀名。默认为 _with_counters.json.gz。
+) -> None #该方法不返回值，而是生成新的追踪文件。
+```
+该API会为指定的rank生成新的追踪文件，并在文件名后添加指定的后缀（默认为 _with_counters.json.gz）。新文件中包含了额外的时间序列数据，用于更深入的性能分析。
+
+为什么队列长度和内存带宽在这里是时序类型？
+
+
+
+
+
+```python
+# Memory bandwidth time series
+memory_bw_series = analyzer.get_memory_bw_time_series()
+
+# Memory bandwidth summary
+memory_bw_summary = analyzer.get_memory_bw_summary()
+
+# Queue length time series
+ql_series = analyzer.get_queue_length_time_series()
+
+# Queue length summary
+ql_summary = analyzer.get_queue_length_summary()
 
 ```
 
