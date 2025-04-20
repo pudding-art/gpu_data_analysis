@@ -39,8 +39,6 @@
 ```python
 
 
-# Idle time breakdown
-idle_time_df = analyzer.get_idle_time_breakdown()
 
 
 # Frequent CUDA kernel patterns
@@ -209,9 +207,16 @@ comm_comp_overlap_df = analyzer.get_comm_comp_overlap()
 - Other wait time:由于未知原因导致的GPU空闲时间。可能是因为计算内核在等待CUDA事件，或者其他未明确识别的原因。需要进一步分析和调试代码，找出导致GPU空闲的具体原因。可以使用更详细的性能分析工具或调试器，检查CUDA事件的同步逻辑，确保内核之间能够高效协作，减少不必要的等待时间。
 
 
+
 - idle_tile_df = rank stream idle_category idle_time idle_time_ratio
 
 - interval_stats_df = idle_category rank stream count(所有的idle intervals数量) mean(idle time/count) std min 25% 50% 75% max
+
+```python
+# Idle time breakdown
+idle_time_df = analyzer.get_idle_time_breakdown()
+```
+
 
 ### Augmented Counters(Queue Length and Memory Bandwidth)
 向追踪数据中添加额外的计数器和时间序列信息，以便更全面地分析GPU的性能。
@@ -225,14 +230,29 @@ analyzer.generate_trace_with_counters(
     ranks: Optional[List[int]] = None, # 指定要生成计数器的 rank 列表。默认为 [0]。
     output_suffix: str = '_with_counters', # 指定生成的追踪文件的后缀名。默认为 _with_counters.json.gz。
 ) -> None #该方法不返回值，而是生成新的追踪文件。
+
+
+
+# Queue length summary
+# get_queue_length_summary() 方法用于计算和返回每个 CUDA 流的队列长度统计信息，这些信息汇总在称为数据框的表格结构中，每行代表一个特定 CUDA 流的统计摘要。
+ql_summary = analyzer.get_queue_length_summary(ranks = [1])
+
+# Raw time series
+queue_length_dict = analyzer.get_queue_length_time_series(ranks: Optional[List[int]] = None) -> Dict[int, pandas.core.frame.DataFrame]
+
+# Time spent blocked on a kernel launch queue.
+analyzer.get_time_spent_blocked_on_full_queue(
+    queue_length_dict: Dict[int, pandas.core.frame.DataFrame], # queue_length_dict 是一个字典，键是 rank（进程编号），值是 pandas.DataFrame 数据框。每个数据框包含对应 rank 的 CUDA 流队列长度的时间序列数据。queue_length_dict 是通过调用 analyzer.get_queue_length_time_series() 方法得到的，它包含了每个 rank 的 CUDA 流队列长度的时间序列数据。
+    max_queue_length: int = 1024, # 表示内核启动队列的最大长度。max_queue_length 是一个可调参数，默认值可能因工具或框架而异，但通常需要根据具体的 GPU 和应用场景进行设置。
+) -> Optional[pandas.core.frame.DataFrame]
 ```
+
 该API会为指定的rank生成新的追踪文件，并在文件名后添加指定的后缀（默认为 _with_counters.json.gz）。新文件中包含了额外的时间序列数据，用于更深入的性能分析。
 
 为什么队列长度和内存带宽在这里是时序类型？
 
-
-
-
+1. 队列长度反映的是在某一时刻，CUDA 流中等待执行的操作数量。这个数值会随着内核的启动和完成而动态变化。只有通过记录不同时刻的队列长度，才能了解 GPU 的负载情况和任务调度的效率。例如，队列长度的增加可能表示任务提交速度超过了 GPU 的执行速度，或者某些内核执行时间过长，导致任务积压。
+2. 内存带宽衡量的是在某一时间段内，数据在不同内存之间传输的速率。这个数值也会随时间变化，因为不同的操作会以不同的速率访问内存。通过记录不同时刻的内存带宽，可以了解内存传输的效率和瓶颈。例如，内存带宽的降低可能表示数据传输操作出现了问题，或者某些操作对内存的访问模式不够优化。
 
 ```python
 # Memory bandwidth time series
@@ -244,22 +264,79 @@ memory_bw_summary = analyzer.get_memory_bw_summary()
 # Queue length time series
 ql_series = analyzer.get_queue_length_time_series()
 
-# Queue length summary
-ql_summary = analyzer.get_queue_length_summary()
+```
 
+
+当 CPU 向 GPU 提交内核时，它使用一个有限大小的队列。如果这个队列被填满，CPU 就不得不等待（阻塞），直到 GPU 能够启动更多的内核。这种情况可能发生在 GPU 正忙于其他任务或者内核被快速连续提交时。
+
+函数 get_time_spent_blocked_on_full_queue() 用于确定 CPU 因队列满而等待 GPU 启动内核所花费的时间。它使用 get_queue_length_time_series() 方法返回的队列长度时间序列数据，来判断队列何时处于最大长度。
+
+- `duration_at_max_queue_length`：队列处于最大长度的总时间（以纳秒为单位）。
+- `relative_duration_at_max_queue_length`：相对于追踪总时长的 duration_at_max_queue_length。它表明阻塞时间在整体执行时间中的占比。
+
+```python
+blocked_time_df = analyzer.get_time_spent_blocked_on_full_queue(ranks=[0])
+print(blocked_time_df)
 ```
 
 ### CUDA Kernel Launch Statistics
+在GPU上启动的内核和在CPU上进行的调度操作是一一对应的。每个GPU内核启动事件都有一个对应的CPU调度事件，两者通过“相关ID”（correlation id）关联起来。
 
 ```python
 # CUDA kernel launch statistics
 cuda_launch_kernel_stats = analyzer.get_cuda_kernel_launch_stats()
 ```
 
+这个功能主要用于计算以下几个关键时间指标：
+- CPU 操作的持续时间：即 CPU 上调度事件的执行时间。
+- GPU 内核的持续时间：即 GPU 上内核的执行时间。
+- 启动延迟：即从 CPU 操作结束到 GPU 内核开始执行之间的时间差。这个指标反映了内核启动的效率。
+
+| correlation | cpu_duration | gpu_duration | launch_delay | 
+| --- | --- | --- | --- | 
+| 278204 | 15 | 37 | 31 | 
+| 278209 | 12 | 40 | 26 | 
+| 278239 | 12 | 31 | 25 | 
+| 278244 | 11 | 53 | 24 | 
+| 278249 | 11 | 3 | 25 | 
+| ... | ... | ... | ... | 
+| 335216 | 13 | 103 | 24418 | 
+| 335221 | 10 | 50 | 24471 | 
+| 335229 | 12 | 55 | 24451 | 
+| 335252 | 16 | 3045 | 21331 | 
+| 335300 | 17 | 476 | 24022 | 
+
+- correlation：相关ID，用于关联CPU调度事件和GPU内核启动事件。
+- cpu_duration：CPU操作的持续时间（单位：毫秒）。
+- gpu_duration：GPU内核的持续时间（单位：毫秒）。
+- launch_delay：启动延迟，即从CPU操作结束到GPU内核开始执行的时间差（单位：毫秒）。
+
+前几个内核的启动延迟在24到31毫秒之间，属于正常范围。
+后几个内核的启动延迟显著增加，达到了24418、24471等，这表明这些内核的启动存在严重延迟。
+
+通过这些指标，开发者可以了解内核执行的效率以及 CPU 和 GPU 之间的协调情况。
+
+
+
+
 ### Most Frequent CUDA Kernel Sequences
+“Most Frequent CUDA Kernel Sequences” 功能的作用是识别在指定操作中启动的最常见的 CUDA 内核序列，帮助开发者发现可以优化的内核调用模式。当执行深度学习模型或其他 GPU 加速应用程序时，某些 CUDA 内核序列可能会频繁出现。识别这些频繁的内核序列有助于优化代码，例如通过内核融合减少内核启动次数和数据传输开销。
+
+
+
 
 ```python
+frequent_cuda_kernels = analyzer.get_frequent_cuda_kernel_sequences(
+    operator_name="aten::linear",  # 指定操作符名称
+    output_dir="/tmp/",            # 指定生成的追踪文件的输出目录
+    min_pattern_len=3,            # 指定最小内核序列长度
+    rank=0,                       # 指定要分析的 rank
+    top_k=5,                      # 指定要返回的最频繁序列的数量
+    visualize=False               # 指定是否生成可视化结果
+)
 
+# print(frequent_cuda_kernels)
 ```
 
+分析工具会识别在指定操作中启动的 CUDA 内核序列。该功能生成一个新的追踪文件，将识别出的最常见的 k 个内核模式叠加在原始追踪文件上。通过在新追踪文件中搜索“Patterns”关键词，相关 CPU 和 GPU 操作会被高亮显示，提示开发者关注这些位置以寻找内核融合或其他优化机会。"Patterns" 指的是特定的 CUDA 内核调用序列或组合。这些模式代表了在代码执行过程中频繁出现的内核调用系列。
 
