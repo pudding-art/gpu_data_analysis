@@ -11,6 +11,16 @@ https://github.com/facebookresearch/HolisticTraceAnalysis/blob/main/examples/exp
 Scalable critical-path analysis and optimization guidance for hybrid MPICUDA applications:
 https://www.hzdr.de/publications/PublDoc-9225.pdf
 
+Critical path analysis CPU operator events :
+https://github.com/facebookresearch/HolisticTraceAnalysis/pull/67
+
+[2/n] Critical Path analysis for GPU events and CPU->GPU and GPU->CPU dependencies:
+https://github.com/facebookresearch/HolisticTraceAnalysis/pull/68
+
+[3/N] Add critical path analysis GPU->GPU sync dependencies
+https://github.com/facebookresearch/HolisticTraceAnalysis/pull/69
+
+
 关键路径分析的核心思想是找出大型系统中构成起始和结束之间最长路径的操作。关键路径上的操作会显著影响程序的整体性能。
 
 ![key_path](image-2.png)
