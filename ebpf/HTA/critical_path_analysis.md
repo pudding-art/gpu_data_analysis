@@ -21,6 +21,12 @@ https://github.com/facebookresearch/HolisticTraceAnalysis/pull/68
 https://github.com/facebookresearch/HolisticTraceAnalysis/pull/69
 
 
+PyTorch Kineto：深入剖析CPU+GPU性能的利器:
+https://blog.csdn.net/gitblog_00570/article/details/144285403
+
+MLPerf:https://engineering.fb.com/2018/12/12/ml-applications/mask-r-cnn2go/
+
+
 关键路径分析的核心思想是找出大型系统中构成起始和结束之间最长路径的操作。关键路径上的操作会显著影响程序的整体性能。
 
 ![key_path](image-2.png)
