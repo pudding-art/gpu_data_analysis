@@ -95,6 +95,90 @@ graph TD
 
 > 同步事件：在CPU和GPU之间可能会有同步操作，确保CPU和GPU操作按特定顺序执行。例如，CPU可能需要等待GPU完成某个内核后才能继续执行后续操作，或者GPU可能需要等待CPU完成数据准备后才能启动内核
 
+
+```mermaid
+graph TD
+    subgraph CPU_Operator_1
+        A[CPU Operator 1 Begin] -->|5ms| B[CPU Operator 1 End]
+    end
+
+    subgraph CUDA_Runtime
+        B -->|Kernel Launch<br>Delay 2ms| C[Kernel A Launch]
+        C -->|Kernel A<br>Execution 10ms| D[Kernel A End]
+        D -->|Kernel Launch<br>Delay 1ms| E[Kernel B Launch]
+        E -->|Kernel B<br>Execution 8ms| F[Kernel B End]
+    end
+
+    subgraph CPU_Operator_2
+        F -->|3ms| G[CPU Operator 2 Begin]
+        G -->|6ms| H[CPU Operator 2 End]
+    end
+
+    classDef cpuOperator fill:#fff,stroke:#333,stroke-width:2px;
+    classDef cudaRuntime fill:#f9f,stroke:#333,stroke-width:2px;
+    class A,B cpuOperator;
+    class C,D,E,F cudaRuntime;
+    class G,H cpuOperator;
+
+    linkStyle 0 stroke:#333,stroke-width:2px;
+    linkStyle 1 stroke:#f9f,stroke-width:2px,dasharray:5,5;
+    linkStyle 2 stroke:#f9f,stroke-width:2px;
+    linkStyle 3 stroke:#f9f,stroke-width:2px,dasharray:5,5;
+    linkStyle 4 stroke:#333,stroke-width:2px;
+    linkStyle 5 stroke:#333,stroke-width:2px;
+```
+
+#### 同步依赖
+
+CPU 运行时（CPU Runtime）：
+- 上下文同步（Context Synchronize）：表示全局同步，等待所有GPU流中的内核完成。
+- 流同步（Stream Synchronize）：表示单一流同步，等待特定流中的内核完成。
+- 事件同步（Event Synchronize）：表示基于事件的同步，通常用于GPU到GPU的同步。
+```mermaid
+graph TD
+    subgraph GPU_Streams
+        subgraph Stream_1
+            K1[Kernel 1] -->|10ms| K1_END[Kernel 1 End]
+            K2[Kernel 2] -->|8ms| K2_END[Kernel 2 End]
+        end
+        subgraph Stream_2
+            K3[Kernel 3] -->|12ms| K3_END[Kernel 3 End]
+            K4[Kernel 4] -->|7ms| K4_END[Kernel 4 End]
+        end
+    end
+
+    subgraph CPU_Runtime
+        C1[Context Synchronize] --> C2[Stream Synchronize]
+        C2 --> C3[Event Synchronize]
+    end
+
+    K1_END -->|Sync| C1
+    K2_END -->|Sync| C1
+    K3_END -->|Sync| C2
+    K4_END -->|Sync| C2
+    K4_END -->|Event| C3
+
+    classDef gpuKernel fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef cpuRuntime fill:#fff,stroke:#333,stroke-width:2px;
+    class K1,K1_END,K2,K2_END,K3,K3_END,K4,K4_END gpuKernel;
+    class C1,C2,C3 cpuRuntime;
+
+    linkStyle 0 stroke:#f9f,stroke-width:2px;
+    linkStyle 1 stroke:#f9f,stroke-width:2px;
+    linkStyle 2 stroke:#f9f,stroke-width:2px;
+    linkStyle 3 stroke:#f9f,stroke-width:2px;
+    linkStyle 4 stroke:#333,stroke-width:2px,dasharray:5,5;
+    linkStyle 5 stroke:#333,stroke-width:2px,dasharray:5,5;
+    linkStyle 6 stroke:#333,stroke-width:2px,dasharray:5,5;
+    linkStyle 7 stroke:#333,stroke-width:2px,dasharray:5,5;
+```
+同步边（Synchronization Edges）：
+- 上下文同步边：从所有流中的最后一个内核（Kernel 1 End 和 Kernel 2 End）到 Context Synchronize。
+- 流同步边：从流2中的最后一个内核（Kernel 4 End）到 Stream Synchronize。
+- 事件同步边：从流2中的最后一个内核（Kernel 4 End）到 Event Synchronize，表示基于事件的同步。
+
+
+
 #### 未来增强
 
 操作符的数据依赖部分可以在以后添加，这将进一步使我们能够获得诸如操作和子图重新排序的见解。我们可以通过Chakra执行追踪来跟踪张量之间的数据依赖关系。此版本的关键路径分析不需要执行追踪。
