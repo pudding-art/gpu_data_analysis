@@ -224,8 +224,140 @@ graph TD
 
 重新排序子图是指在Chakra执行跟踪所表示的图结构中，对子图内的节点执行顺序进行调整和优化。子图可以是整个执行图中的一个相对独立的局部区域，其中包含了多个相互关联的操作节点。通过对子图重新排序，可以探索不同的执行顺序对整体性能的影响，以发现潜在的优化机会，例如减少数据依赖等待时间、提高并行执行效率等。常见的重新排序子图的方法包括基于依赖关系的调度优化、基于资源利用率的负载均衡调整等。
 
+## API
+```python
+analyzer.critical_path_analysis(
+    rank: int, # rank to analyze for the critical path.
+    annotation: str, # a trace annotation to limit the analysis to, for example "ProfilerStep" would match all annotations that match this string (ProfilerStep#100, ProfilerStep#101 etc)
+    instance_id: Union[int, NoneType, Tuple[int, int]], # can be either of the following
+        # (int) - specify which instance of the annotation to consider.
+        #         Defaults to the first instance.
+        # (Tuple(int, int)) - considers a range of annotation instances start to end,
+        #         inclusive of both start and end instance.
+) -> Tuple[hta.analyzers.critical_path_analysis.CPGraph, bool] 
+       # A tuple of CPGraph object and a success or fail boolean value.
+       #  True indicates that the critical path analysis algorithm succeeded.
+```
 
 
+```python
+cp_graph.summary() -> pandas.core.series.Series
+# Displays a summary or breakdown of the critical path into one of the following
+# - cpu_bound
+# - gpu_compute_bound
+# - gpu_communication_bound (NCCL Collectives)
+# - gpu_kernel_kernel_overhead (Gaps between GPU kernels)
+# - gpu_kernel_launch_overhead (Delay launching kernels from CPU to GPU)
+
+# Returns:
+#     A summary pandas series with bottleneck type -> % of duration on critical path. Also see get_critical_path_breakdown().
+
+cp_graph.get_critical_path_breakdown() #  more information on the specific events and edges involved in the critical path
+```
+
+
+![results](image-4.png)
+
+
+原始文件上的关键路径：
+```python
+analyzer.overlay_critical_path_analysis(
+    rank: int, #rank to generate the time series for.
+    critical_path_graph: hta.analyzers.critical_path_analysis.CPGraph, # Critical Path Graph object generated previously
+    output_dir: str, #  Output directory to store overlaid trace
+    only_show_critical_events: bool = True, # When set the output trace will only have operators and GPU kernels on the critical path. It will still retain the user annotations.
+    show_all_edges: bool = False, # When set this will add edge events for all types of edges in the critical path graph. This is useful for debugging the algorithm.
+) -> str
+# Returns: the overlaid trace file path. The generated trace file will
+# have a prefix of "overlaid_critical_path\_" in its name compared
+# to the original trace file.
+
+
+# flow events的类别名通常以critical_path_开头,含义如下:
+# critical_path_dependency: an inter operator dependency.
+# critical_path_operator: an edge between start and end of a CPU operator or GPU kernel.
+# critical_path_kernel_launch_delay: delay to launch a GPU kernel that is likely to be on the critical path.
+# critical_path_kernel_kernel_delay: delay between running successive GPU kernels.
+# critical_path_sync_dependency: these edges denote synchronization or control dependencies between events such as GPU->CPU, GPU->GPU synchronization.
+```
+
+当`only_show_critical_events=True`（默认值）时，输出轨迹仅包含关键路径上的CPU算子和GPU事件。可以将其与原始轨迹进​​行比较，以对比算法识别出的关键路径。当`only_show_critical_events=False`时，在输出跟踪文件中搜索“critical”以突出显示关键路径上的事件。但是现在perfetto用不了False的功能。关键路径图中的边将使用**箭头**或**流事件**显示。关键边使用`args`属性中的“critical”标志进行标记。
+
+```python
+WARNING:hta:Parsed /home/hwt/HolisticTraceAnalysis/tests/data/critical_path/simple_add/benchmark_result_493459_1694039959_trace.json.gz time = 0.00 seconds 
+```
+
+### 存储和恢复CPGraph对象
+构造关键路径图（CPGraph）可能需要耗费一定的时间。如果用户希望在现有的关键路径图基础上模拟新的更改，频繁地重新构造整个图会使迭代过程变得缓慢。
+为了加速这一过程，CPGraph 对象添加了`save()`和`restore()`功能：
+- `save()`功能：用于保存已经构造好的关键路径图的状态。注意，只有在关键路径图构造完成后才能执行保存操作。
+- `restore()`功能：允许用户将关键路径图恢复到之前保存的状态。这样，在模拟新的更改时，用户不需要重新构造整个图，而是可以从保存的状态开始，从而节省时间。
+
+```python
+# 将关键路径图对象保存到一个zip文件中，此save()操作只能在图表构建完成后执行！
+cp_graph.save(out_dir: str) -> str #  path to the zip file containing the object.
+# The directory used to first dump a collection of files used to save the state of CPGraph object. The directory is then compressed into a zipfile with the same name.
+
+# 从zip文件中恢复CPGraph对象
+# The graph will already be constructed in this case. You can however run critical_path() again and modify the graph etc.
+restore_cpgraph(zip_filename: str, t_full: 'Trace', rank: int) -> hta.analyzers.critical_path_analysis.CPGraph
+```
+
+将数据保存到三个文件中然后再压缩:
+1. trace_data保存为一个csv文件
+2. networkx图使用python pickle序列化
+3. 其他对象数据使用python pickle序列化
+
+
+![restore](image-5.png)
+
+```python
+# recompute critical path
+rest_graph.critical_path()
+```
+
+### CPGraph
+```python
+CPGraph(
+    t: Optional[ForwardRef('Trace')],
+    t_full: 'Trace',
+    rank: int,
+    G=None,
+) -> None
+```
+Critical path analysis graph representation for trace from one rank.
+This object constructs a graph that can be analyzed using networkx library.
+
+We maintain a mapping between node ids -> CPNode objects
+and use the integer as a node in the networkx graph datastructure.
+Edges are directly used as the type is hashable.
+
+Attributes:
+    trace_df (pd.DataFrame): dataframe of trace events used to construct this graph.
+    symbol_table (TraceSymbolTable): a symbol table used to encode the symbols in the trace.
+    node_list (List[int]): list of critical path node objects, index in this list is always the node id..
+    critical_path_nodes (List[int]): list of node ids on the critical path.
+    critical_path_events_set (Set[int]): set of event ids corresponding to the critical path nodes.
+    critical_path_edges_set (Set[CPEdge]): set of edge objects that are on the critical path.
+
+#### 两种初始化方法
+
+Initialize a critical path graph object. This can be done in two
+ways
+    1) Generate critical path analysis graph from scatch.
+    2) Restore a serialized CPGraph object.
+
+For (2) the networkx.DiGraph object G is utilized, see restore_cpgraph() function in this file.
+
+Args:
+    t (Trace): Clipped trace object focussing on region of interest.
+    t_full (Trace): Full Trace object.
+    rank (int): Rank to perform analysis on.
+    G (networkx.DiGraph): An optional DiGraph object.
+
+https://github.com/facebookresearch/HolisticTraceAnalysis/blob/main/examples/experimental/critical_path_analysis.ipynb
+
+## iteration和epoch的区别
 epoch——使用整个训练样本集传播一次。
 
 一次传播 = 一次前向传播 + 一次后向传播。（所有的训练样本完成一次Forword运算以及一次BP运算）
