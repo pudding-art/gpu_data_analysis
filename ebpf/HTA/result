@@ -1,0 +1,28 @@
+True
+Critical Path broken down by boundedness = (in % of duration)
+bound_by
+                               0.000000
+cpu_bound                     99.779087
+gpu_compute_bound              0.210157
+gpu_kernel_kernel_overhead     0.003723
+gpu_kernel_launch_overhead     0.007033
+Name: duration, dtype: float64
+xxxxxxxxxxxxxxxx
+True
+True
+Critical Path broken down by boundedness = (in % of duration)
+bound_by
+                               0.000000
+cpu_bound                     99.779087
+gpu_compute_bound              0.210157
+gpu_kernel_kernel_overhead     0.003723
+gpu_kernel_launch_overhead     0.007033
+Name: duration, dtype: float64
+Critical Path broken down by boundedness = (in % of duration)
+bound_by
+                               0.000000
+cpu_bound                     99.779087
+gpu_compute_bound              0.210157
+gpu_kernel_kernel_overhead     0.003723
+gpu_kernel_launch_overhead     0.007033
+Name: duration, dtype: float64
