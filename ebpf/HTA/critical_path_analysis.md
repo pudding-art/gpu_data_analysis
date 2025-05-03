@@ -317,6 +317,8 @@ rest_graph.critical_path()
 ```
 
 ### CPGraph
+关键路径分析的图表示。CPGraph表示从一个rank（可以理解为进程、线程或某种执行单元）的trace进行关键路径分析的图结构。这种图表示形式能够利用networkx库来进行分析，networkx是一个用于创建、操作和研究复杂网络结构的Python库。它通过维护node id与CPNode对象之间的映射关系，使用整数作为networkx图数据结构中的节点标识。同时，边（edges）由于其类型是可哈希的，可以直接在图中使用。
+
 ```python
 CPGraph(
     t: Optional[ForwardRef('Trace')],
@@ -325,35 +327,26 @@ CPGraph(
     G=None,
 ) -> None
 ```
-Critical path analysis graph representation for trace from one rank.
-This object constructs a graph that can be analyzed using networkx library.
+#### Attributes
+- trace_df (pd.DataFrame) ：
+用于存储构建该图所依据的trace事件数据。它包含了程序执行过程中各种事件的信息，如事件类型、发生时间、相关资源等，是构建关键路径分析图的基础数据来源。
+- symbol_table (TraceSymbolTable) ：
+这是一个符号表，用于对trace的符号进行编码。在程序执行的trace数据中，会涉及到各种符号，如函数名、变量名等，符号表的作用是将这些符号进行编码转换，便于在图结构中进行统一的处理和表示。
+- node_list (List[int]) ：
+它是一个整数列表，列表中的每个元素代表一个关键路径节点对象。列表的索引对应的就是节点id，通过这个列表可以根据节点id快速地获取到对应的节点对象，节点对象中包含了与该节点相关的详细信息，如节点类型、执行时间等。
+- critical_path_nodes (List[int]) ：
+这是关键路径上的节点id列表。它明确标识了在关键路径上的各个节点，通过这些节点id可以在node_list中找到对应的节点对象，从而了解关键路径上各个节点的具体情况，这一列表有助于快速定位和分析关键路径上的关键节点。
+- critical_path_events_set (Set[int]) ：
+它是一个整数集合，存储了与关键路径节点对应的事件id。在trace数据中，每个事件都有一个唯一的id，这个集合中的事件id代表了关键路径上所涉及的事件。通过对这些事件的分析，可以了解关键路径上各个节点对应的事件的具体内容和执行情况。
+- critical_path_edges_set (Set[CPEdge]) ：
+这是一个CPEdge对象的集合，表示关键路径上的边。边代表了节点之间的依赖关系或执行顺序，CPEdge对象中包含了边的起始节点、结束节点以及边的相关属性等信息。通过这个集合可以了解到关键路径上各个节点之间的连接关系和依赖情况。
 
-We maintain a mapping between node ids -> CPNode objects
-and use the integer as a node in the networkx graph datastructure.
-Edges are directly used as the type is hashable.
-
-Attributes:
-    trace_df (pd.DataFrame): dataframe of trace events used to construct this graph.
-    symbol_table (TraceSymbolTable): a symbol table used to encode the symbols in the trace.
-    node_list (List[int]): list of critical path node objects, index in this list is always the node id..
-    critical_path_nodes (List[int]): list of node ids on the critical path.
-    critical_path_events_set (Set[int]): set of event ids corresponding to the critical path nodes.
-    critical_path_edges_set (Set[CPEdge]): set of edge objects that are on the critical path.
 
 #### 两种初始化方法
 
-Initialize a critical path graph object. This can be done in two
-ways
-    1) Generate critical path analysis graph from scatch.
-    2) Restore a serialized CPGraph object.
+1. 从头开始生成关键路径分析图：这种方式是基于原始数据（如程序执行的trace数据等）来构建关键路径图。它会根据提供的trace信息、指定的rank等参数，从头创建关键路径图对象，包括构建图的节点、边以及相关的属性等。
+2. 恢复序列化的CPGraph对象：这里的CPGraph应该是指关键路径图对象。在这种方式下，会利用`networkx.DiGraph`对象G来恢复之前序列化的CPGraph对象，具体可以通过该文件中的`restore_cpgraph()`函数来实现。序列化是一种将对象转换为字节流的形式以便存储或传输的过程，而恢复序列化的对象则是将字节流重新转换为原来的对象，这在需要对之前生成的关键路径图进行重新加载和使用时非常有用。
 
-For (2) the networkx.DiGraph object G is utilized, see restore_cpgraph() function in this file.
-
-Args:
-    t (Trace): Clipped trace object focussing on region of interest.
-    t_full (Trace): Full Trace object.
-    rank (int): Rank to perform analysis on.
-    G (networkx.DiGraph): An optional DiGraph object.
 
 https://github.com/facebookresearch/HolisticTraceAnalysis/blob/main/examples/experimental/critical_path_analysis.ipynb
 
