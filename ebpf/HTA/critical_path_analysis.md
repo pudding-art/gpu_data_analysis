@@ -29,6 +29,9 @@ MLPerf:https://engineering.fb.com/2018/12/12/ml-applications/mask-r-cnn2go/
 Chakra Execution Trace:
 https://github.com/mlcommons/chakra
 
+epoch和iteration的区别:
+https://blog.csdn.net/liuyanfeier/article/details/60964475
+
 关键路径分析的核心思想是找出大型系统中构成起始和结束之间最长路径的操作。关键路径上的操作会显著影响程序的整体性能。
 
 ![key_path](image-2.png)
@@ -220,3 +223,16 @@ graph TD
 ### 重新排序子图的含义
 
 重新排序子图是指在Chakra执行跟踪所表示的图结构中，对子图内的节点执行顺序进行调整和优化。子图可以是整个执行图中的一个相对独立的局部区域，其中包含了多个相互关联的操作节点。通过对子图重新排序，可以探索不同的执行顺序对整体性能的影响，以发现潜在的优化机会，例如减少数据依赖等待时间、提高并行执行效率等。常见的重新排序子图的方法包括基于依赖关系的调度优化、基于资源利用率的负载均衡调整等。
+
+
+
+epoch——使用整个训练样本集传播一次。
+
+一次传播 = 一次前向传播 + 一次后向传播。（所有的训练样本完成一次Forword运算以及一次BP运算）
+
+但是考虑到内存不够用的问题，训练样本们往往并不是全都一起拿到内存中去训练，而是一次拿一个batch去训练，一个batch包含的样本数称为batch size。
+
+iteration——使用batch size个样本传播一次。同样，一次传播 = 一次前向传播 + 一次后向传播。
+
+eg. 我们有1000个训练样本，batch size为100，那么完成一次epoch就需要10个iteration。
+                
