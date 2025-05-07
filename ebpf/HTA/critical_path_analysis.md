@@ -1,36 +1,5 @@
 # 关键路径分解
-有关轻量级关键路径分解：
-https://hta.readthedocs.io/en/latest/source/features/lightweight_critical_path_analysis.html
 
-Using Chakra execution traces for benchmarking and network performance optimization:
-https://engineering.fb.com/2023/09/07/networking-traffic/chakra-execution-traces-benchmarking-network-performance-optimization/
-
-critical path analysis脚本:
-https://github.com/facebookresearch/HolisticTraceAnalysis/blob/main/examples/experimental/critical_path_analysis.ipynb
-
-Scalable critical-path analysis and optimization guidance for hybrid MPICUDA applications:
-https://www.hzdr.de/publications/PublDoc-9225.pdf
-
-Critical path analysis CPU operator events :
-https://github.com/facebookresearch/HolisticTraceAnalysis/pull/67
-
-[2/n] Critical Path analysis for GPU events and CPU->GPU and GPU->CPU dependencies:
-https://github.com/facebookresearch/HolisticTraceAnalysis/pull/68
-
-[3/N] Add critical path analysis GPU->GPU sync dependencies
-https://github.com/facebookresearch/HolisticTraceAnalysis/pull/69
-
-
-PyTorch Kineto：深入剖析CPU+GPU性能的利器:
-https://blog.csdn.net/gitblog_00570/article/details/144285403
-
-MLPerf:https://engineering.fb.com/2018/12/12/ml-applications/mask-r-cnn2go/
-
-Chakra Execution Trace:
-https://github.com/mlcommons/chakra
-
-epoch和iteration的区别:
-https://blog.csdn.net/liuyanfeier/article/details/60964475
 
 关键路径分析的核心思想是找出大型系统中构成起始和结束之间最长路径的操作。关键路径上的操作会显著影响程序的整体性能。
 
@@ -360,4 +329,52 @@ epoch——使用整个训练样本集传播一次。
 iteration——使用batch size个样本传播一次。同样，一次传播 = 一次前向传播 + 一次后向传播。
 
 eg. 我们有1000个训练样本，batch size为100，那么完成一次epoch就需要10个iteration。
-                
+
+## 参考文献
+
+有关轻量级关键路径分解：
+https://hta.readthedocs.io/en/latest/source/features/lightweight_critical_path_analysis.html
+
+Using Chakra execution traces for benchmarking and network performance optimization:
+https://engineering.fb.com/2023/09/07/networking-traffic/chakra-execution-traces-benchmarking-network-performance-optimization/
+
+critical path analysis脚本:
+https://github.com/facebookresearch/HolisticTraceAnalysis/blob/main/examples/experimental/critical_path_analysis.ipynb
+
+Scalable critical-path analysis and optimization guidance for hybrid MPICUDA applications:
+https://www.hzdr.de/publications/PublDoc-9225.pdf
+
+Critical path analysis CPU operator events :
+https://github.com/facebookresearch/HolisticTraceAnalysis/pull/67
+
+[2/n] Critical Path analysis for GPU events and CPU->GPU and GPU->CPU dependencies:
+https://github.com/facebookresearch/HolisticTraceAnalysis/pull/68
+
+[3/N] Add critical path analysis GPU->GPU sync dependencies
+https://github.com/facebookresearch/HolisticTraceAnalysis/pull/69
+
+
+PyTorch Kineto：深入剖析CPU+GPU性能的利器:
+https://blog.csdn.net/gitblog_00570/article/details/144285403
+
+MLPerf:https://engineering.fb.com/2018/12/12/ml-applications/mask-r-cnn2go/
+
+Chakra Execution Trace:
+https://github.com/mlcommons/chakra
+
+epoch和iteration的区别:
+https://blog.csdn.net/liuyanfeier/article/details/60964475
+
+API synchronization behavior:
+https://docs.nvidia.com/cuda/cuda-runtime-api/api-sync-behavior.html#api-sync-behavior__memcpy-sync
+
+Event Management:
+https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__EVENT.html
+
+networkx Docs:
+https://www.osgeo.cn/networkx/reference/algorithms/generated/networkx.algorithms.dag.dag_longest_path.html
+
+Tracer parser and loader backend:
+https://github.com/facebookresearch/HolisticTraceAnalysis/pull/125
+
+整体上，这段代码先从原始的trace数据框中筛选出与GPU内核相关的事件，然后通过两次连接操作分别整合运行时和原始的队列长度信息，并对列名进行调整，最后删除一些不必要的列，得到一个专注于GPU内核事件及其相关队列长度信息的数据框。
