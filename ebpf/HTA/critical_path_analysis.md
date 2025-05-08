@@ -17,10 +17,10 @@
 
 ### 为什么是轻量级？
 
-分析此类依赖关系的空间非常广阔。我们可以通过分析**多rank的关键路径**来更好地理解诸如**落后进程**stragglers等问题，并考虑**PyTorch操作符之间的张量输入/输出依赖关系**。这种关键路径分析的主要目的是识别训练循环中的主要性能瓶颈——是CPU,GPU计算还是GPU通信。
+分析此类依赖关系的空间非常广阔。我们可以通过分析**多rank的关键路径**来更好地理解诸如**落后进程**stragglers等问题，并考虑**PyTorch算子之间的张量输入/输出依赖关系**。这种关键路径分析的主要目的是识别训练循环中的主要性能瓶颈——是CPU,GPU计算还是GPU通信。
 
-> 张量操作符之间的输入输出关系是指在深度学习框架（如 PyTorch 或 TensorFlow）中，张量（tensor）如何作为数据在不同的操作符（operator）之间流动和转换。这种关系是神经网络计算的核心，因为它描述了数据如何通过网络的各个层进行传播和变换。
-操作符是指对张量进行操作的函数或层。例如，线性层（linear layer）、卷积层（convolutional layer）、激活函数（activation function）等都是操作符。每个操作符接收一个或多个张量作为输入，进行特定的计算，并输出一个或多个张量。
+> 张量算子之间的输入输出关系是指在深度学习框架（如 PyTorch 或 TensorFlow）中，张量（tensor）如何作为数据在不同的算子（operator）之间流动和转换。这种关系是神经网络计算的核心，因为它描述了数据如何通过网络的各个层进行传播和变换。
+算子是指对张量进行操作的函数或层。例如，线性层（linear layer）、卷积层（convolutional layer）、激活函数（activation function）等都是算子。每个算子接收一个或多个张量作为输入，进行特定的计算，并输出一个或多个张量。
 
 
 ```mermaid
@@ -52,14 +52,14 @@ graph TD
 
 #### 核心假设
 
-为了简化PyTorch操作符之间的依赖关系分析，我们做出了以下关键假设：
+为了简化PyTorch算子之间的依赖关系分析，我们做出了以下关键假设：
 
-1. **CPU操作符的串行依赖关系**：假设所有PyTorch CPU操作符都依赖于在相应CPU线程上最后执行的操作符。这简化了分析，假设CPU操作是顺序执行的。
+1. **CPU算子的串行依赖关系**：假设所有PyTorch CPU算子都依赖于在相应CPU线程上最后执行的算子。这简化了分析，假设CPU操作是顺序执行的。
 2. **CPU和GPU之间的依赖关系**：我们还考虑了CPU和GPU操作之间的依赖关系。这包括<mark>内核启动、内核之间的时间延迟以及同步事件</mark>。
 
 关键路径分析的主要动机是识别training loop中的主要瓶颈是CPU, GPU计算还是GPU通信。
 
-> 在深度学习框架（如 PyTorch）中，CPU操作符通常会顺序执行。假设一个CPU线程上的操作符会等待该线程上一个操作符完成后才开始执行。这简化了分析，因为可以将CPU操作视为顺序链，**无需考虑复杂的并行或重叠执行情况**。假设CPU线程上有操作符A、B和C。操作符B会等待操作符A完成后再开始，操作符C又会等待操作符B完成后再开始。这种顺序执行的假设使得分析CPU 操作符之间的依赖关系变得简单明了。
+> 在深度学习框架（如 PyTorch）中，CPU算子通常会顺序执行。假设一个CPU线程上的算子会等待该线程上一个算子完成后才开始执行。这简化了分析，因为可以将CPU操作视为顺序链，**无需考虑复杂的并行或重叠执行情况**。假设CPU线程上有算子A、B和C。算子B会等待算子A完成后再开始，算子C又会等待算子B完成后再开始。这种顺序执行的假设使得分析CPU 算子之间的依赖关系变得简单明了。
 
 > 内核启动：CPU需要将内核（kernel）发送到GPU上执行。从CPU发出启动信号到GPU实际开始执行内核之间存在时间延迟。
 
@@ -71,19 +71,19 @@ graph TD
 ```mermaid
 graph TD
     subgraph CPU_Operator_1
-        A[CPU Operator 1 Begin] -->|5ms| B[CPU Operator 1 End]
+        A[CPU Operator 1 Begin] -->| CPU Operator 1 Execution<br> 5ms CPEdgeType.OPERATOR_KERNEL | B[CPU Operator 1 End]
     end
 
     subgraph CUDA_Runtime
-        B -->|Kernel Launch<br>Delay 2ms| C[Kernel A Launch]
-        C -->|Kernel A<br>Execution 10ms| D[Kernel A End]
-        D -->|Kernel Launch<br>Delay 1ms| E[Kernel B Launch]
-        E -->|Kernel B<br>Execution 8ms| F[Kernel B End]
+        B -->|Kernel Launch Delay<br> 2ms CPEdgeType.KERNEL_LAUNCH_DELAY | C[Kernel A Launch]
+        C -->|Kernel A Execution<br> 10ms CPEdgeType.OPERATOR_KERNEL     | D[Kernel A End]
+        D -->|Kernel Launch Delay<br> 1ms CPEdgeType.KERNEL_LAUNCH_DELAY | E[Kernel B Launch]
+        E -->|Kernel B Execution<br>  8ms CPEdgeType.OPERATOR_KERNEL     | F[Kernel B End]
     end
 
     subgraph CPU_Operator_2
         F -->|3ms| G[CPU Operator 2 Begin]
-        G -->|6ms| H[CPU Operator 2 End]
+        G -->|CPU operator 2 Execution<br> 6ms CPEdgeType.OPERATOR_KERNEL | H[CPU Operator 2 End]
     end
 
     classDef cpuOperator fill:#fff,stroke:#333,stroke-width:2px;
@@ -102,10 +102,11 @@ graph TD
 
 #### 同步依赖
 
-CPU 运行时（CPU Runtime）：
+GPU Runtime：
 - 上下文同步（Context Synchronize）：表示全局同步，等待所有GPU流中的内核完成。
 - 流同步（Stream Synchronize）：表示单一流同步，等待特定流中的内核完成。
 - 事件同步（Event Synchronize）：表示基于事件的同步，通常用于GPU到GPU的同步。
+
 ```mermaid
 graph TD
     subgraph GPU_Streams
@@ -144,6 +145,8 @@ graph TD
     linkStyle 6 stroke:#333,stroke-width:2px,dasharray:5,5;
     linkStyle 7 stroke:#333,stroke-width:2px,dasharray:5,5;
 ```
+
+
 同步边（Synchronization Edges）：
 - 上下文同步边：从所有流中的最后一个内核（Kernel 1 End 和 Kernel 2 End）到 Context Synchronize。
 - 流同步边：从流2中的最后一个内核（Kernel 4 End）到 Stream Synchronize。
@@ -153,17 +156,17 @@ graph TD
 
 #### 未来增强
 
-操作符的数据依赖部分可以在以后添加，这将进一步使我们能够获得诸如操作和子图重新排序的见解。我们可以通过Chakra执行追踪来跟踪张量之间的数据依赖关系。此版本的关键路径分析不需要执行追踪。
+算子的数据依赖部分可以在以后添加，这将进一步使我们能够获得诸如操作和子图重新排序的见解。我们可以通过Chakra执行追踪来跟踪张量之间的数据依赖关系。此版本的关键路径分析不需要执行追踪。
 
 总结来说，这种轻量级的关键路径分析提供了一种简化的方法，可以在不需要复杂的执行追踪的情况下，快速识别训练循环中的主要性能瓶颈。
 
 
-操作符的数据依赖部分
-含义：在深度学习框架（如PyTorch）中，操作符之间的数据依赖关系指的是一个操作符的输出张量作为另一个操作符的输入张量时所形成的依赖关系。例如，线性层操作符的输出张量会作为激活函数操作符的输入张量，这就是一种数据依赖关系。
+算子的数据依赖部分
+含义：在深度学习框架（如PyTorch）中，算子之间的数据依赖关系指的是一个算子的输出张量作为另一个算子的输入张量时所形成的依赖关系。例如，线性层算子的输出张量会作为激活函数算子的输入张量，这就是一种数据依赖关系。
 
 获得诸如操作和子图重新排序的见解
 
-含义：通过分析操作符之间的数据依赖关系，可以了解操作的执行顺序和依赖关系。这有助于优化操作的执行顺序，或者将相关的操作组合成子图进行优化。例如，如果发现某些操作之间存在数据依赖，但执行顺序不合理，可以重新排序以提高效率。
+含义：通过分析算子之间的数据依赖关系，可以了解操作的执行顺序和依赖关系。这有助于优化操作的执行顺序，或者将相关的操作组合成子图进行优化。例如，如果发现某些操作之间存在数据依赖，但执行顺序不合理，可以重新排序以提高效率。
 
 通过Chakra执行追踪来跟踪张量之间的数据依赖关系
 含义：Chakra执行追踪是一种标准化的工作负载规范，用于捕获关键操作和依赖关系。它提供了一种图模式来表示AI/ML工作负载的执行过程，包括计算、内存和通信等核心操作，以及它们的依赖关系、时间和元数据。通过Chakra执行追踪，可以详细跟踪张量之间的数据依赖关系，这对于分析和优化深度学习模型的执行过程非常有用。
