@@ -28,6 +28,15 @@ provide a generative ML model trained with production traces
     - **The test case generator** lets users generate arbitrary execution traces by offering libraries to describe traces. 
     - **The execution trace feeder** is a library that other simulators can use to parse traces and feed them into the simulator.
 
+
+
+
+astra-sim 2.0 CXL expanded experiment
+
+calculon CXL expanded experiment
+
+
+
 2. References
 
 
@@ -39,3 +48,10 @@ https://engineering.fb.com/2018/12/12/ml-applications/mask-r-cnn2go/
 
 https://www.usenix.org/conference/osdi18/presentation/zhou
 
+
+
+
+
+
+/bin/sh:protoc not found指的是缺少protobuf-compiler库
+sudo apt-get install protobuf-compiler
