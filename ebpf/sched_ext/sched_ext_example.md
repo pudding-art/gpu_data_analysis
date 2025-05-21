@@ -243,10 +243,80 @@ void BPF_STRUCT_OPS(simple_exit, struct scx_exit_info *ei)
   │
   ▼
 ```
-支持几个新特性
+支持几个新特性:
+- 睡眠安全的每任务存储（ops.prep_enable）,在任务被调度器启用前，为其分配专用存储,睡眠用于可能阻塞的场景
+- BPF_MAP_TYPE_QUEUE映射类型
+- core-sched，允许BPF程序深入内核调度决策
+    - 通过`ops.select_cpu()`选择目标 CPU。
+    - 通过`ops.enqueue()`和`ops.dequeue()`控制任务队列。
+    - 通过`ops.running()`和`ops.stopping()`管理任务执行状态。
+
+qmap_init->bpf_timer_init->bpf_timer_set_callback->monitor_timerfn->dispatch_highpri(true)/monitor_cpuperf/dump_shared_dsq->
+一个shared_dsq,一个highpri_dsq
+同时初始化了一个timer,从系统启动阶段就开始收集性能数据，以便发现异常。如果不在初始化时启动定时器，可能导致系统运行初期缺乏监控，无法及时响应负载变换。
+
+
+qmap_tick的触发时机，当任务时间片耗尽或调度周期到达时会使用这个函数
+time slice expired
+周期性调度检查
+上下文切换
+
+
 
 
 ### scx_central
 
+集中式调度器
+单 CPU 决策：所有调度决策由一个专用 CPU（调度器 CPU）负责，其他 CPU 无需参与调度逻辑。
+无限时间片：工作 CPU 运行任务时使用无限时间片（infinite slices），无需时钟中断（timer ticks）触发调度。
+减少开销：避免每个 CPU 独立调度带来的同步和上下文切换成本。
+
+```c
+调度器 CPU                     工作 CPU
+  │                              │
+  ├─ 接收任务调度请求 ───────────►│
+  │                              │
+  ├─ 做出调度决策 ──────────────►│
+  │                              │
+  └─ 分配任务到目标 CPU ─────────►│ 执行任务（无限时间片，无时钟中断）
+
+//传统调度
+时钟中断 → 调度器抢占任务 → 触发 vmexit → 宿主机处理中断 → 重新进入 VM
+//集中式调度
+调度器 CPU 提前规划任务 → 工作 CPU 无限执行 → 减少 vmexit 触发
+```
+
+适用场景：
+虚拟机（VM）运行：减少 vmexit 次数（时钟中断会触发昂贵的 VM 退出）。
+高性能计算（HPC）：减少调度干扰，提升计算密集型任务效率。
+实时系统：保证关键任务的执行时间确定性。
+
+
+
 
 ### scx_flatcg
+扁平化cgroup层次调度器
+ 传统 cgroup 调度的问题
+层次化权重计算复杂：传统 cgroup 调度需遍历整个层级树计算每个组的 CPU 份额。
+高开销：多级 cgroup 嵌套时，调度决策需递归访问父组，性能下降。
+
+扁平化设计思路
+层级合并：将多级 cgroup 结构 “扁平化” 为单层，通过复合权重（compounded weight）直接计算最终份额。
+公式：子 cgroup 的有效权重 = 自身权重 × 父组权重 × ... × 根组权重。
+```
+Root(权重 100) ──┬── GroupA(权重 50) ── Task1
+                └── GroupB(权重 200) ──┬── SubGroupB1(权重 100) ── Task2
+                                     └── SubGroupB2(权重 200) ── Task3
+Task1: 100 × 50 = 5000
+Task2: 100 × 200 × 100 = 2,000,000
+Task3: 100 × 200 × 200 = 4,000,000
+```
+
+O (1) 复杂度：无需遍历层级树，直接通过复合权重计算份额。
+缓存友好：单层结构减少内存访问，提升 CPU 缓存命中率。
+实验数据：在统一 L3 缓存的单套接字系统中，调度延迟降低 30%+
+
+多层级 cgroup 环境：如云平台容器调度，减少层级嵌套带来的开销。
+单节点高性能系统：在共享缓存的多核系统中表现优异。
+权重稳定的工作负载：适合长期运行且权重配置较少变化的场景
+
