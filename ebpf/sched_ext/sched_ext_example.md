@@ -432,9 +432,84 @@ Andrea Righi 也一直在努力将 NUMA 感知添加到默认空闲选择代码�
 未来，我们可能希望改进 NUMA 节点选择，以考虑与 prev_cpu 的节点距离。目前，该逻辑仅尝试保持任务在同一个 NUMA 节点上运行。如果节点内的所有 CPU 都处于繁忙状态，则随机选择下一个 NUMA 节点。
 
 
+MySQL,PostgreSQL,Nignx,Redis(6.x+),Spark,Hadoop等
+通过上游Linux内核提供的sched_ext接口或者openEuler提供的可编程调度借口实现用户态自定义调度器，实现业务亲和的自适应调度调优能力。
+
+先选择几个已经实现的schedulers:
+
+C实现的：
+1. scx_simple
+2. scx_central
+3. scx_layered
+4. scx_flatcg
+5. scx_nest
+6. scx_pair
+7. scx_qmap
+8. scx_prev
+9. scx_userland
+
+Rust实现的：
+1. scx_bpfland
+2. scx_flash
+3. scx_lavd
+4. scx_layered
+5. scx_p2dq
+6. scx_rlfifo
+7. scx_rustland
+8. scx_rusty
+9. scx_tickless
+
+然后再在以上实现中加入6.15的numa-aware的patch再次测试,说明numa-aware給应用带来的性能提升程度
+
+然后如果发现特殊规律，针对特殊规律的两个应用进行调用跟踪调试
+
+选择性能最好的5个，分析每种应用为啥性能好？
+选择性能最好的2个，分析哪里还能改进？如果把numa-distance加到kernel patch中是不是效果更好？
+
+
+
 包含NUMA感知的调度器
+
+6.13 对 Sched_EXT 的一个非常有用的新增功能是引入了 LLC 和 NUMA 感知。Sched_EXT 现在可以在多路服务器等的 NUMA 环境中更好地运行。最后一级缓存 (LLC) 感知还可以增强当今基于小芯片的处理器（例如 AMD Ryzen 和 AMD EPYC Linux 系统）的空闲 CPU 检测逻辑。这些 Linux 6.13 新增功能将有助于在同一个 LLC 域中选择 CPU 内核，然后是 NUMA 节点
+
+Linux 6.13 中的 sched_ext 代码还能更好地处理 WAKE_SYNC，修复了多路 Intel Xeon Sapphire Rapids 服务器上跨路对同一队列进行锤击操作可能导致系统实时锁定的问题，并提高了“调度”和“使用”术语的清晰度。
+
+
+https://www.phoronix.com/news/Linux-6.13-Sched_Ext
+
+https://www.phoronix.com/news/sched_ext-NUMA-Awareness
+
+
 https://lore.kernel.org/lkml/20241027174953.49655-1-arighi@nvidia.com/
 
 https://git.kernel.org/pub/scm/linux/kernel/git/tj/sched_ext.git/commit/?h=for-6.13&id=dfa4ed29b18c5f26cd311b0da7f049dbb2a2b33b
 
 https://git.kernel.org/pub/scm/linux/kernel/git/tj/sched_ext.git/log/?h=for-6.13
+
+
+Nginx性能测试:
+https://plantegg.github.io/2022/10/10/Nginx%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/
+
+
+https://developer.aliyun.com/article/475489
+
+现在直接编译的是x86的kernel，如果想在arm架构上运行，要先考虑使用qemu模拟arm的架构，然后挂载文件系统，在上面再运行对应的os进行应用测试，但是如果在虚拟机中运行，估计会很卡，多层嵌套了。
+
+考虑租一个ubuntu服务器然后再在上面运行arm架构的内容，少了一层虚拟机，然后可以做成镜像，这样可以compile once run anywhere
+
+但是x86架构下也可以启动sched_scx,先用CFS或者EEVDF测试一下redis的性能，然后在开启sched_ext测试redis的性能。
+
+写成一个测试脚本
+redis的性能应该用ycsb-load来测试，直接将之前服务器上的拷贝过来运行。
+
+然后换成arm的环境，qemu配置的环境尽量符合鲲鹏920的环境，但是os不想选openEuler，还是用Linux kernel的arm架构编译一下。
+
+然后就是分析一下提供的几个应用，都有什么特点
+
+然后是numa balancing怎么改呢？
+
+最后是内存分配器的原理
+
+ptmalloc的原理
+
+
