@@ -741,11 +741,122 @@ static int load_elf_binary(struct linux_binprm * bprm){
 
 ### 数据内存申请和堆初始化
 
-现在虚拟地址空间中的代码段,数据段和栈都已经准备就绪
+现在虚拟地址空间中的代码段,数据段和栈都已经准备就绪, 还有一个堆内存需要初始化。
+![ans](image-11.png)
+
+```c
+// file:fs/binfmt_elf.c
+static int load_elf_binary(struct linux_binprm * bprm){
+     // 数据内存申请&堆初始化
+     retval = set_brk(elf_bss, elf_brk, bss_port);
+     if(retval)
+          goto out_free_dentry;
+     ...
+}
+
+static int set_brk(unsigned long start, unsigned long end){
+     // 1. 为数据段申请虚拟内存
+     start = ELF_PAGEALIGN(start);// 内存对齐
+     end = ELF_PAGEALIGN(end);
+     if(end > start){
+          vm_brk_flags(start, end-start, prot&PROT_EXEC ? VM_EXEC:0);
+     }
+
+     // 2. 初始化堆的开始指针和结束指针
+     // start_brk 开始指针
+     // brk 结束指针
+     // 程序初始化时，堆上还是空的，堆从下往上增长，所以堆的开始地址
+     current->mm->start_brk = current->mm->brk = end;
+     return 0;
+}
+```
+<font color=#sdfa88>**代码中常用的malloc就是用来修改brk相关的指针来实现内存申请的。**</font>
+
+**问题：为什么执行Segment加载过程后还需要为数据段申请虚拟内存？为什么没有为代码段申请虚拟内存？**
+
+在 ELF 文件加载过程中，代码段和数据段的处理方式有所不同。
+- 代码段（.text）通常包含可执行的机器指令，这些指令在程序运行时是只读的。
+在加载过程中，内核会直接将代码段从 ELF 文件映射到进程的虚拟地址空间中。这个过程是通过 mmap 系统调用实现的，内核会根据 ELF 文件的程序头部表（Program Header Table）中的信息，将代码段映射到合适的虚拟内存区域。因此，代码段的虚拟内存是直接通过 mmap 映射的，不需要额外申请。
+- 数据段（.data）包含程序中的全局变量和静态变量，这些数据在程序运行时可能会被修改。
+数据段的初始化部分（包含初始值的数据）也会从 ELF 文件映射到虚拟地址空间中，类似于代码段的处理。但数据段的未初始化部分（BSS 段）需要分配内存并初始化为零。这部分内存没有对应的文件内容，因此需要通过 vm_brk_flags 等函数来申请虚拟内存并进行初始化。
+
+代码段的虚拟内存是通过**mmap映射**的，而不是通过`vm_brk_flags`申请的。这是因为代码段的内容直接来源于ELF文件，内核可以直接根据程序头部表中的信息将代码段映射到进程的地址空间中，而不需要额外分配内存。start_data、end_data、start_code、end_code 等变量用于记录代码段和数据段在内存中的位置。这些信息主要用于调试和内存管理等目的。虽然这些信息记录了代码段和数据段的范围，但它们本身并不直接分配虚拟内存。只有当内核通过`mmap`或`vm_brk_flags`等函数实际分配虚拟内存时，才会创建相应的`vm_area_struct`。因此，如果没有为某个内存区域分配`vm_area_struct`，则说明该区域尚未实际分配虚拟内存。
+
 
 ### 跳转到程序入口执行
 
+在ELF文件头中记录了程序的入口地址。如果是<font color=#dfg235>**非动态链接加载**</font>的情况，入口地址就是这个。但如果是<font color=#dfg235>**动态链接加载**</font>的，也就是说存在INTERP类型的Segment，由这个动态链接器先来加载运行，然后再调回程序的代码入口地址。
 
+![res](image-12.png)
+
+```shell
+hong@hong-VMware-Virtual-Platform:~/Desktop$ readelf --program-headers helloworld
+
+Elf file type is DYN (Position-Independent Executable file)
+Entry point 0x1060
+There are 13 program headers, starting at offset 64
+
+Program Headers:
+  Type           Offset             VirtAddr           PhysAddr
+                 FileSiz            MemSiz              Flags  Align
+  INTERP         0x0000000000000318 0x0000000000000318 0x0000000000000318
+                 0x000000000000001c 0x000000000000001c  R      0x1
+      [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
+```
+对于动态加载器类型的Segment，需要先将动态链接器(/lib64/ld-linux-x86-64.so.2)加载到地址空间。
+```c
+// file:fs/binfmt_elf.c
+static int load_elf_binary(struct linux_binprm * bprm){
+     // 第一次遍历Program Header Table
+     // 只针对PT_INTERP类型的Segment做预处理
+     // 这个Segment中保存着动态链接器在文件系统中的路径信息
+     for(i = 0; i < loc->elf_ex.e_phnum; i++){
+          ...
+     }
+
+     // 第二次遍历Program Header Table
+     elf_ppnt = elf_phdata;
+     for(i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++){
+          ...
+     }
+
+     // 如果程序中指定了动态链接器，就把动态链接器程序读出来
+     if(elf_interpreter){
+          // 加载并返回动态链接器代码段地址
+          elf_entry = load_elf_interp(&loc->interp_elf_ex, 
+                                        interpreter,
+                                        &interp_map_addr,
+                                        load_bias);
+          // 计算动态链接器入口地址
+          elf_entry += loc->interp_elf_ex.e_entry;
+     }else{
+          elf_entry = loc->elf_ex.e_entry;
+     }
+
+     // 跳转到入口开始执行
+     START_THREAD(elf_ex, regs, elf_entry, bprm->p);
+     ...
+}
+```
+每个语言都会提供自己的入口函数，这个入口函数不是main函数，而是很多语言开发者实现的入口函数。在glibc中，这个入口函数是_start,在这个入口函数中会进行很多进入main函数之前的初始化操作，例如全局对象的狗仔，建立打开文件表，初始化标准输入输出流等。也会注册好程序退出时的处理逻辑，接着才会进入到main函数中来执行。可以注意到在加载新程序运行的过程中其实有一些浪费，fork系统调用首先将父进程的很多信息复制了一遍，而execve加载可执行程序的时候又重新赋值。所以。<font color=#dfa>**在实际的shell程序中，一般使用的是`vfork`**</font>。其工作原理基本和fork一致，但区别是会少复制一些在execve系统调用中得不到的信息，进而提高加载性能。
+## 总结
+
+问题：shell是如何将可执行程序执行起来的？
+
+Linux在初始化的时候，会将所有支持的加载器都注册到一个全局链表中。对于ELF文件来说，它的加载器在内核定义为elf_format,其二进制加载入口是load_elf_binary函数。一般来说shell进程是通过fork+execve来加载并运行新进程的。执行fork系统调用的作用是创建一个新进程。不过fork创建的新进程的代码、数据都和原来的shell进程的内容一直。要想实现加载并运行另外一个程序，还需要使用到execve系统调用。
+
+在execve系统调用中，会申请一个linux_binprm的对象，在初始化linux_binprm的过程中，会申请一个全新的mm_struct对象，准备留着给新进程使用，还会给新进程的栈准备一页4KB的虚拟内存，读取可执行文件的前128字节。接下来就是调用ELF加载器的load_elf_binary函数进行实际的加载。大致会执行几个步骤：
+- ELF文件头解析
+- Program Header读取
+- 清空父进程继承来的资源，使用新的mm_struct和新的栈
+- 执行Segment加载，将ELF文件中的LOAD类型的Segment都加载到虚拟内存
+- 为数据Segment申请内存，并将堆的起始指针进行初始化
+- 最后计算并跳转到程序入口执行
+
+当用户进程启动后，可以通过proc伪文件来查看进程中的各个Segment:
+```shell
+cat /proc/${pid}/maps
+```
 
 
 
@@ -772,7 +883,4 @@ ELF 符号：复杂又麻烦的技术细节：https://www.bluepuni.com/archives/
 https://cloud.tencent.com/developer/article/2187949?from=15425&policyId=20240001&traceId=01jw7n1efkz38vd10tr883h1e3&frompage=seopage
 
 
-# 系统物理内存初始化
-
-# 进程如何使用内存
 
