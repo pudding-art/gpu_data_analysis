@@ -32,7 +32,8 @@ ELF可执行文件由四部分组成，分别是`ELF header, Program Header Tabl
 
 ### ELF Header
 
-ELF header部分是识别elf文件的重要部分，其中包含了很多metadata,比如当前可执行文件的类型,程序的入口地址等。可以通过`readelf --file-header ${program file}`指令查看可执行文件header的内容。
+ELF header部分是识别elf文件的重要部分，其中包含了很多metadata,比如当前可执行文件的类型,程序的入口地址等。
+**ELF header的大小，32位elf是52字节，64位elf是64字节。**可以通过`readelf --file-header ${program file}`指令查看可执行文件header的内容。
 
 **问题：但是发现用readelf命令查看编译后的可执行文件类型时，发现文件类型是DYN (Shared object file)，而不是EXEC (Executable file)？**
 
@@ -248,7 +249,9 @@ int data1;          // 未初始化内存区域位于.data
 int data2 = 100;    // 已经初始化的内存区域位于.bss
 ```
 
-nm命令是linux下自带的特定文件分析工具，一般用来检查分析二进制文件、库文件、可执行文件中的**符号表**，返回二进制文件中各段的信息。
+nm命令是linux下自带的特定文件分析工具，一般用来检查分析二进制文件、库文件、可执行文件中的**符号表**，返回二进制文件中各段的信息。通常ELF格式中具有2种符号表：
+- .symtab ：该文件中接触到的所有符号都能在这找到，不会被载入到内存中
+- .dynsym ： .symtab 的子集，提供给动态链接器使用，会被载入到内存中
 ```shell
 hong@hong-VMware-Virtual-Platform:~/Desktop$ nm -n helloworld
                  w __gmon_start__
@@ -403,6 +406,296 @@ static struct task_struct *copy_process(...){
 fork系统调用只能根据shell进程复制一个新进程，这个新进程里的代码,数据都还是和原来的shell进程一样，要想加载并运行另外一个程序，还需要execve系统调用。该系统调用会读取用户输入的可执行文件名,参数列表及环境变量等开始加载并运行用户指定的可执行文件。
 
 
+```c
+// file:fs/exec.c
+SYSCALL_DEFINE3(execve, const char __user * , filename , ...){
+     return do_execve(getname(filename), argv, envp); // 文件名，参数列表，环境变量
+}
+
+int do_execve(...){
+     return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+}
+
+static int do_execveat_common(int fd, struct filename *filename, ...){
+     // 1. 保存加载二进制文件使用的参数 paramter
+     struct linux_binprm * bprm; 
+     // 2. 申请并初始化bprm对象值
+     bprm = alloc_bprm(fd, filename); 
+     bprm->argc = count(argv, MAX_ARG_STRINGS);
+     bprm->envc = count(envp, MAX_ARG_STRINGS);
+     ...
+     // 3. 执行加载
+     bprm_execve(bprm, fd, filename, flags);// 读取可执行文件的头128字节，并选择加载器
+}
+```
+初始化bprm对象的过程如下：
+
+![init bprm](image-3.png)
+
+申请并初始化bprm对象的过程如下：
+1. 申请linux_binprm内核对象
+2. 调用bprm_mm_init申请一个全新的地址空间mm_struct对象，准备留着給新进程使用
+3. 调用__bprm_mm_init給新进程的栈申请一页的虚拟内存空间，并将栈指针记录下来，**将vma放到进程地址空间mm_struct的红黑树中管理**
+
+内核对象linux_binprm是进程加载过程中的一个结构，可以理解为一个临时对象。在加载的时候，该内核对象用来保存加载二进制文件时使用的参数等信息，为进程申请的虚拟地址空间以及分配的栈内存也会临时在这里放一会儿。等到进程加载完毕，这个对象就没什么用了。
+```c
+// file:fs/exec.c
+static struct linux_binprm * alloc_bprm(int fd, struct filename *filename){
+     struct linux_binprm * bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
+     bprm->filename = ...
+     bprm_mm_init(bprm);
+     ...
+     return bprm;
+}
+
+static int bprm_mm_init(struct linux_binprm* bprm){
+     //申请一个全新的地址空间mm_struct对象
+     bprm->mm = mm = mm_alloc();
+     __bprm_mm_init(bprm);
+}
+
+static int __bprm_mm_inti(struct linux_binprm* bprm){
+     struct mm_struct *mm = bprm->mm;
+     ...
+     // 申请占用一段地址范围
+     // 虚拟地址空间中，每一段地址范围都是用一个vma对象来表示的。vma的vm_start, vm_end两个成员共同声明了当前vma所占用的地址空间范围
+     bprm->vma = vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);
+     vma->vm_end = STACK_TOP_MAX; // 地址空间的顶部附近的位置
+     vma->vm_start = vma->vm_end - PAGE_SIZE; // 默认申请4KB的地址范围
+
+     // 将这段地址范围放入虚拟地址空间对象中管理
+     insert_vm_struct(mm, vma);
+     ...
+     bprm->p = vma->vm_end - sizeof(void *);//最后将栈指针记录在bprm->p中
+}
+```
+问题：为什么这里先赋值vm_end,再赋值vm_start,而且为什么要赋值为STACK_TOP_MAX？
+
+栈的生长方向是从高地址向低地址生长。先设置vm_end可以明确栈的顶部位置，然后通过简单的减法（vm_end - PAGE_SIZE）来计算出栈的底部位置（vm_start）。这样可以确保栈的大小是正确的，并且边界清晰。先设置vm_end为一个较大的地址（STACK_TOP_MAX），可以为后续可能的栈扩展提供空间。如果先设置vm_start，可能会限制栈向上扩展的能力。STACK_TOP_MAX是用户空间中栈可以占用的最大地址，将其作为栈的初始顶部地址，可以为栈提供尽可能大的空间，避免栈溢出。STACK_TOP_MAX是一个安全的边界值，位于用户空间和内核空间的交界处，将栈的顶部设置为这个值可以防止栈向上生长到内核空间。
+```c
+// file:fs/exec.c
+static int search_binary_handler(struct linux_binprm *bprm){
+     //读取可执行文件头，判断文件格式
+     prepare_binprm(bprm);
+     ...
+     // 尝试启动加载
+     // 遍历formats中已经注册的全局链表，根据二进制文件头中携带的文件类型数据查找解析器
+     // 找到后调用解析器的函数对二进制文件进行加载
+retry:
+     list_for_each_entry(fmt, &formats, lh){
+          retval = fmt->load_binary(bprm); //判断每一个链表元素是否有load_binary函数，如果有尝试使用其进行加载
+          ...
+          // 加载成功返回
+          if(bprm->point_of_no_return || (retval != -ENOEXEC)){
+               return retval;
+          }
+          ...
+          // 否则继续尝试
+          goto retry;
+     }
+}
+
+// file:include/uapi/linux/binfmts.h
+#define BINPRM_BUF_SIZE 256
+
+// file:fs/exec.c
+int prepare_binprm(struct linux_binprm *bprm){
+     ...
+     memset(bprm->buf,0,BINPRM_BUF_SIZE);
+     return kernel_read(bprm->file, 0, bprm->buf,BINPRM_BUF_SIZE);
+}
+
+
+```
+Linux在启动的时候，会将自己支持的所有可执行文件的解析器全部加载上，并使用一个formats双向链表来保存所有的解析器。Linux中支持的可执行文件格式如下:
+- ELF:Linux上最常用的可执行文件格式
+- aout:主要是为了和以前兼容，由于不支持动态链接，所以被ELF取代
+- EM86：主要作用是在Alpha的主机上运行Intel的Linux二进制文件
+
+![loader](image-4.png)
+
+
+![analyzer](image-5.png)
+
+Linux中每一个加载器都用一个linux_binfmt的结构来表示，其中规定了加载二进制可执行文件的load_binary函数指针,以及加载崩溃文件的coredump函数等.
+```c
+// file:include/linux/binfmts.h
+struct linux_binfmt{
+     ...
+     int (*load_binary)(struct linux_binprm*);
+     int (*load_shlib)(struct file*);
+     int (*core_dump)(struct coredump_params *cprm);
+};
+
+// file:fs/binfmt_elf.c
+static struct linux_binfmt elf_format = {
+     .module = THIS_MODULE,
+     .load_binary = load_elf_binary, // 具体的加载函数，elf加载的入口
+     .load_shlib = load_elf_library,
+     .core_dump = elf_core_dump,
+     .min_coredump = ELF_EXEC_PAGESIZE,
+};
+```
+加载器elf_format会在初始化的时候通过register_binfmt进行注册：
+```c
+// file:fs/binfmt_elf.c
+static int __init init_elf_binfmt(void){
+     register_binfmt(&elf_format); // 将加载器挂到formats全局链表中
+     return 0;
+}
+
+// file:fs/exec.c
+static LIST_HEAD(formats);
+
+void __register_binfmt(struct linux_binfmt * fmt, int insert){
+     ...
+     insert? list_add(&fmt->lh, &formats):
+          list_add_tail(&fmt->lh, &formats);
+}
+```
+在源码目录中搜索register_binfmt,可以搜索到Linux操作系统支持的所有格式的加载器，将来Linux加载二进制文件时会遍历formats链表，根据要加载的文件格式来查询合适的加载器:
+![res](image-6.png)
+```shell
+# grep -r "register_binfmt" *
+fs/binfmt_flat.c: register_binfmt(&flat_format);
+fs/binfmt_elf_fdpic.c: register_binfmt(&elf_fdpic_format);
+fs/binfmt_som.c: register_binfmt(&som_format);
+fs/binfmt_elf.c: register_binfmt(&elf_format);
+fs/binfmt_aout.c: register_binfmt(&aout_format);
+fs/binfmt_script.c: register_binfmt(&script_format);
+fs/binfmt_em86.c: register_binfmt(&em86_format);
+```
+
+
+## ELF文件加载过程
+根据上面的内容，读取文件头128字节，判断可执行文件格式遍历加载器执行load_binary函数。本小节介绍的就是load_binary函数到底干了啥。基本上所有的程序加载逻辑都在这个函数中体现了。这个函数的主要工作如下:
+1. ELF文件头读取
+2. Program Header读取，读取所有的Segment
+3. 清空父进程继承来的虚拟地址空间等资源
+4. 执行Segment的加载
+5. 数据段内存申请，堆初始化
+6. 跳转到程序入口点执行
+### 读取ELF文件头
+do_execve_common函数中已经将ELF文件头读取到bprm->buf中，这里直接复制这段内存就好了。
+![header](image-7.png)
+```c
+// file:fs/binfmt_elf.c
+static int load_elf_binary(struct linux_binprm * bprm){
+     // 文件头解析
+     struct elfhdr *elf_ex = (struct elfhdr*)bprm->buf;
+     struct elfhdr *interp_elf_ex = NULL;
+
+     // 对头部进行一系列的合法性判断，不合法则直接退出
+     if(elf_ex->e_type != ET_EXEC && elf_ex->e_type != ET_DYN) // ET_EXEC 表示独立的可执行文件，ET_DYN 表示需要动态链接的可执行文件
+          goto out;
+     ...
+     // 申请interp_elf_ex对象
+     interp_elf_ex = kmalloc(sizeof(*interp_elf_ex), GFP_KERNEL);
+}
+```
+问题:interp_elf_ex对象是存储什么文件头的？
+
+当处理一个动态链接的ELF文件时，需要加载并解析解释器文件。`interp_elf_ex`用于存储解释器文件的ELF文件头信息。如果可执行文件是动态链接类型`(e_type == ET_DYN)`，代码会读取解释器文件的内容，并将其ELF头信息存储到`interp_elf_ex`中。解释器文件ELF头信息用于判断解释器文件的合法性，以及获取解释器文件的加载地址等信息。解释器本身也是一个ELF文件，它会先于主程序运行，完成动态链接和加载工作。
+动态链接器（也称为解释器）是一个特殊的程序，它负责在程序运行时加载所需的共享库，并将程序中的动态符号引用解析为实际的内存地址。对于 ELF 文件格式的可执行文件，动态链接器本身也是一个 ELF 文件。ELF 解析器主要负责解析 ELF 文件的头部信息、程序头部表、节头部表等内容，以确定如何正确地加载和执行程序。它会检查 ELF 文件的合法性，提取程序的加载地址、内存布局等信息。
+
+内核中的ELF解析器首先读取可执行文件的ELF头部信息，判断文件类型是否为ET_DYN（动态链接）。如果是动态链接文件，它会查找并提取解释器（动态链接器）的路径。内核根据提取的解释器路径，加载动态链接器到内存中，并将控制权交给动态链接器。动态链接器进一步解析可执行文件的ELF头部和程序头部表，确定程序的内存布局和加载地址。同时，它还会解析程序中的动态符号引用，查找并加载所需的共享库。在动态链接器完成所有符号解析和共享库加载后，将控制权转交给主程序，开始执行程序的代码。
+
+### 读取Program Header
+在ELF文件头中记录着Program Header的数量，而且在ELF头之后紧接着就是Program Header Tables。所以内核接下来可以将所有的Program Header都读取出来。
+![program header](image-8.png)
+
+```c
+// file:fs/binfmt_elf.c
+static int load_elf_binary(struct linux_binprm * bprm){
+      //1. ELF 文件头解析
+      //2. 读取Program Header
+      elf_phdata = load_elf_phdrs(elf_ex, bprm->file);
+      if(!elf_phdata)
+          goto out;
+}
+
+//file:fs/binfmt_elf.c
+static struct elf_phdr *load_elf_phdrs(const struct elfhdr *elf_ex, struct file *elf_file)
+{
+ // elf_ex.e_phnum 中保存的是Program Header数量,再根据Program Header大小sizeof(struct elf_phdr)
+ // 一起计算出所有的 Program Header 大小，并读取进来
+ size = loc->elf_ex.e_phnum * sizeof(struct elf_phdr);
+
+ // 申请内存并读取
+ elf_phdata = kmalloc(size, GFP_KERNEL);
+ elf_read(elf_file, elf_phdata, size, elf_ex->e_phoff);//将可执行文件在磁盘上保存的内容读取到内存中
+ 
+ ...
+ return elf_phdata;
+}
+```
+**内核在内存的使用上和用户进程中的虚拟地址空间是不一样的，kmalloc系列的函数都是直接在伙伴系统所管理的物理内存中分配的，不需要触发缺页中断。**
+
+
+### 清空父进程继承来的资源
+fork系统调用创建的进程和原进程信息一致，这些在新的程序运行时并没有甚么用，所以需要清空一下。具体工作包括初始化新进程的信号表，应用新的虚拟地址空间对象等。
+
+![clear](image-9.png)
+```c
+//file:fs/binfmt_elf.c
+static int load_elf_binary(struct linux_binprm *bprm)
+{
+ //4.1 ELF 文件头解析
+ //4.2 Program Header 读取
+
+ //4.3 清空父进程继承来的资源
+ //retval = flush_old_exec(bprm);
+ begin_new_exec(bprm);
+ ...
+ //使用新栈
+ setup_arg_pages(bprm, randomize_stack_top(STACK_TOP), executable_stack);
+ ...
+}
+
+// file:fs/exec.c
+int begin_new_exec(struct linux_binprm * bprm){
+     // 确保文件表不共享
+     unshare_files();
+     // 释放所有旧的mmap
+     exec_mmap(bprm->mm);
+     // 确保信号表不共享
+     unshare_sighand(me);
+     ...
+}
+
+// file:fs/exec.c
+static int exec_mmap(struct mm_struct * mm){
+     struct task_struct * tsk;
+     struct mm_struct * old_mm, *active_mm;
+     tsk = current;
+     old_mm = current->mm;
+
+     // 释放旧空间
+     exec_mm_release(tsk, old_mm);
+
+     // 使用bprm中保存的新的地址空间
+     tsk->mm = mm;
+}
+
+// file:fs/exec.c
+int setup_arg_pages(struct linux_binprm *bprm,
+                    unsigned long stack_top,
+                    int executable_stack){
+     ...
+     current->mm->start_stack = bprm->p; // 
+     ...
+}
+```
+
+
+
+### 执行Segment加载
+
+### 数据内存申请和堆初始化
+
+### 跳转到程序入口执行
+
+
 
 
 
@@ -422,6 +715,13 @@ https://blog.csdn.net/m0_55708805/article/details/117827482
 
 glibc的构造函数和析构函数:
 https://github.com/chenpengcong/blog/issues/19
+
+ELF 符号：复杂又麻烦的技术细节：https://www.bluepuni.com/archives/elf-symbols/
+
+万字图文 | 你写的代码是如何跑起来的？:
+https://cloud.tencent.com/developer/article/2187949?from=15425&policyId=20240001&traceId=01jw7n1efkz38vd10tr883h1e3&frompage=seopage
+
+
 # 系统物理内存初始化
 
 # 进程如何使用内存
