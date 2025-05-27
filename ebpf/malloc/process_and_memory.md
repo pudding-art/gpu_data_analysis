@@ -636,6 +636,8 @@ static struct elf_phdr *load_elf_phdrs(const struct elfhdr *elf_ex, struct file 
 fork系统调用创建的进程和原进程信息一致，这些在新的程序运行时并没有甚么用，所以需要清空一下。具体工作包括初始化新进程的信号表，应用新的虚拟地址空间对象等。
 
 ![clear](image-9.png)
+
+注意这里最后是将栈指针拷贝到新的mm中，而不是让linux_binprm中的栈指针指向mm中的p。
 ```c
 //file:fs/binfmt_elf.c
 static int load_elf_binary(struct linux_binprm *bprm)
@@ -682,7 +684,7 @@ int setup_arg_pages(struct linux_binprm *bprm,
                     unsigned long stack_top,
                     int executable_stack){
      ...
-     current->mm->start_stack = bprm->p; // 
+     current->mm->start_stack = bprm->p; // 为新进程设置新的栈备用
      ...
 }
 ```
@@ -690,8 +692,56 @@ int setup_arg_pages(struct linux_binprm *bprm,
 
 
 ### 执行Segment加载
+接下来是将ELF文件中LOAD类型的Segment加载到内存，实用elf_map在虚拟地址空间中为其分配虚拟内存。最后恰当地设置虚拟地址空间mm_struct中的start_code, end_code, start_data, end_data等各个地址空间相关指针。<font color=#dfa>**只有LOAD类型的Segment是需要被映射到内存的。**</font>
+
+![res](image-10.png)
+
+计算好内存地址后，调用elf_map将磁盘文件中的内容和虚拟地址空间建立映射，等到访问的时候发生缺页中断加载磁盘文件中的代码或数据。最后设置虚拟地址空间中的代码段。数据段相关的指针是:start_code, end_code, start_data, end_data。
+
+
+
+```c
+// file:fs/binfmt_elf.c
+static int load_elf_binary(struct linux_binprm * bprm){
+
+     ...
+     // 执行Segment加载
+     // 遍历可执行文件的Program Header
+     for(i = 0, elf_ppnt = elf_phdata; i < elf_ex->e_phnum; i++, elf_ppnt++){
+          // 只加载类型为LOAD的Segment，否则跳过
+          if(elf_ppnt->p_type!=PT_LOAD)
+               continue;
+          ...
+          // 为Segment建立内存mmap, 等程序文件中的内容映射到虚拟内存空间
+           // load_bias是Segment要加载到内存的基地址
+           /**
+           1. 0:直接按照ELF文件中的地址在内存中进行映射
+           2. 对齐到整数页的开始:物理文件中可能为了可执行文件的大小足够紧凑，而不考虑对齐的问题。但是OS在加载的时候为了运行效率，需要将Segment加载到整数页的开始位置
+           */
+          elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
+                 elf_prot,elf_flags, total_size); 
+         
+
+          // 计算mm_struct所需的各个成员地址
+          start_code = ...;
+          start_data = ...;
+          end_code = ...;
+          end_data = ...'
+          ......
+     }
+     mm = current->mm;
+     mm->end_code = end_code;
+     mm->start_code = start_code;
+     mm->start_data = start_data;
+     mm->end_data = end_data;
+     mm->start_stack = bprm->p;
+     ......
+}
+```
 
 ### 数据内存申请和堆初始化
+
+现在虚拟地址空间中的代码段,数据段和栈都已经准备就绪
 
 ### 跳转到程序入口执行
 
