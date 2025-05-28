@@ -179,7 +179,7 @@ zRAM因为需要开辟一小块内存作为compressed block使用，这样的swa
 
 ## swappiness
 - swapiness反映是否积极地使用swap空间
-    - swapiness = 0 仅在内存不足的情况下，使用swap空间
+    - swapiness = 0 仅在内存不足的情况下(free and file-backed pages < high water mark in a zone)，使用swap空间
     - swapiness = 60 默认值
     - swapiness = 100 内核将积极的使用swap空间
 ```shell
