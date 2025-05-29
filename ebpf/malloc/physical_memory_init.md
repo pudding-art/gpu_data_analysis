@@ -383,6 +383,9 @@ start_kernel
 在paging_init这个函数中为所有的页面都申请一个 struct page 对象。将来通过这个对象来对页面进行管理。内存页管理模型也经过了几代的变化，在最早的时候，采用的是**FLAT模型**、中间还经历了**DISCONTIG模型**，现在都默认采用了
 **SPARSEMEM模型**。SPARSEMEM模型在内存中就是一个<font color=#fda>**二维数组**</font>。在这个二维数组中，通过层层包装，最后包含的最小单元就是表示内存的struct page对象。假设struct page结构体大小是64字节。那么平均每4 KB就额外需要消耗64字节内存用来存储这个对象。 64/4096约等于1.56%，那么管理16GB的内存大约需要 (16*1024 MB) * 1.56%，约256MB的内存。
 
+
+也就是会把memblock开始通过不同的block管理的内存范围全部转换成用page管理，不再是一个个的内存范围[start,end]，而是很多个4KB页面。
+
 ```c
 //file:mm/sparse.c
 #ifdef CONFIG_SPARSEMEM_EXTREME
@@ -396,21 +399,191 @@ EXPORT_SYMBOL(mem_section);
 
 ![sparsemem](image-70.png)
 
+问题:为什么通过free -m看到的内存比实际内存少?
+
+Linux并不会讲所有物理内存都交给用户使用。Linux为了维护自身的运行，会消耗一些内存。比如kdump机制对内存的消耗，内存的页管理机制对内存的占用，还有其他的包括NUMA机制中的node,zone的管理等也都需要内存。
 
 ## NUMA信息感知
 
+非一致性内存访问的含义就是CPU物理核在访问不同的内存条时延迟不同。
+
+不仅仅是跨CPU访问存在延时差异，在同一个CPU的不同核上，由于Mesh架构以及存在两个内存控制器的原因，物理核访问不同的内存控制器上的内存条也会有差异，只不过这个差异没有跨CPU差异大。
+
+
+Linux需要感知到硬件的NUMA信息，获取过程大概分为两步，第一步是内核识别内存所属节点，第二步把NUMA信息关联到自己的memblock初期内存分配器。ACPI中定义了两个表:
+- <font color=#fda>SRAT(System Resource Affinity Table)</font>:表示CPU核和内存的关系，包括有几个node,每个node里有哪几个CPU逻辑核，有哪些内存。
+- <font color=#fda>SLIT(System Locality Information Table)</font>:记录了各个节点之间的距离。
+
+CPU读取以上两个表就快可以获得NUNA系统的CPU和物理内存分布信息。操作系统在启动的时候会执行`setup_arch`函数，会在这个函数中发起NUMA信息初始化。在`initmem_init`中，依次调用了`x86_numa_init`、`numa_init`、`x86_acpi_numa_init`，最后执行到了`acpi_numa_init`函数中来读取ACPI中的SRAT表，获取到各个node中的CPU逻辑核、内存的分布信息。
 
 ```c
+//file:arch/x86/kernel/setup.c
+void __init setup_arch(char **cmdline_p)
+{
+ ...
+// 保存物理内存检测结果
+ e820__memory_setup();
+ ...
+
+// membloc内存分配器初始化
+ e820__memblock_setup();
+
+// 内存初始化（包括 NUMA 机制初始化）
+ initmem_init();
+}
+ 
+
+ //file:drivers/acpi/numa/srat.c
+int __init acpi_numa_init(void)
+{
+ ...
+ // 解析 SRAT 表中的 NUMA 信息
+ // 具体包括：CPU_AFFINITY、MEMORY_AFFINITY 等
+ if (!acpi_table_parse(ACPI_SIG_SRAT, acpi_parse_srat)) {
+  ...
+ }
+ ...
+}
+```
+在SRAT表读取并解析完成后，Linux操作系统就知道了内存和node的关系了。numa信息都最后保存在了numa_meminfo这个数据结构中，这是一个**全局的列表**，每一项都是`(起始地址, 结束地址, 节点编号)`的三元组，描述了内存块与NUMA节点的关联关系。
+
+```c
+//file:arch/x86/mm/numa.c
+static struct numa_meminfo numa_meminfo __initdata_or_meminfo;
+
+//file:arch/x86/mm/numa_internal.h
+struct numa_meminfo {
+ int   nr_blks;
+ struct numa_memblk blk[NR_NODE_MEMBLKS];
+};
+```
+在此之后，Linux就可以通过numa_meminfo数组来获取硬件NUMA信息了。有了numa_meminfo数组，memblock就可以根据这个信息读取到自己各个region分别是属于哪个node的了。
 
 
+
+```c
+//file:arch/x86/mm/numa.c
+static int __init numa_init(int (*init_func)(void))
+{
+ ...
+
+//2.1 把numa相关的信息保存在 numa_meminfo 中
+ init_func();
+
+//2.2 memblock 添加 NUMA 信息，并为每个 node 申请对象
+ numa_register_memblks(&numa_meminfo);
+
+ ...
+// 用于将各个CPU core与NUMA节点关联
+ numa_init_array();
+return0;
+}
+
+```
+在 numa_register_memblks 中完成了三件事情:
+- 将每一个 memblock region 与 NUMA 节点号关联
+- 为每一个 node 都申请一个表示它的内核对象（pglist_data）
+- 再次打印 memblock 信息
+
+```c
+//file:arch/x86/mm/numa.c
+static int __init numa_register_memblks(struct numa_meminfo *mi)
+{
+ ...
+//1.将每一个 memblock region 与 NUMA 节点号关联
+for (i = 0; i < mi->nr_blks; i++) {
+struct numa_memblk *mb = &mi->blk[i];
+  memblock_set_node(mb->start, mb->end - mb->start,
+      &memblock.memory, mb->nid);
+ }
+ ...
+//2.为所有可能存在的node申请pglist_data结构体空间 
+ for_each_node_mask(nid, node_possible_map) {
+  ...
+//为nid申请一个pglist_data结构体
+  alloc_node_data(nid);
+ }
+
+//3.打印MemBlock内存分配器的详细调试信息
+ memblock_dump_all();
+}
+```
+再次查看memblock内存分配器的信息，上面标有node节点位置:
+```shell
+[    0.010796] MEMBLOCK configuration:
+[    0.010797]  memory size = 0x00000003fff78c00 reserved size = 0x0000000003d7bd7e
+[    0.010797]  memory.cnt  = 0x4
+[    0.010799]  memory[0x0] [0x0000000000001000-0x000000000009efff], 0x000000000009e000 bytes on node 0 flags: 0x0
+[    0.010800]  memory[0x1] [0x0000000000100000-0x00000000bffd9fff], 0x00000000bfeda000 bytes on node 0 flags: 0x0
+[    0.010801]  memory[0x2] [0x0000000100000000-0x000000023fffffff], 0x0000000140000000 bytes on node 0 flags: 0x0
+[    0.010802]  memory[0x3] [0x0000000240000000-0x000000043fffffff], 0x0000000200000000 bytes on node 1 flags: 0x0
+[    0.010803]  reserved.cnt  = 0x7
+[    0.010804]  reserved[0x0] [0x0000000000000000-0x00000000000fffff], 0x0000000000100000 bytes on node 0 flags: 0x0
+[    0.010806]  reserved[0x1] [0x0000000001000000-0x000000000340cfff], 0x000000000240d000 bytes on node 0 flags: 0x0
+[    0.010807]  reserved[0x2] [0x0000000034f31000-0x000000003678ffff], 0x000000000185f000 bytes on node 0 flags: 0x0
+[    0.010808]  reserved[0x3] [0x00000000bffe0000-0x00000000bffe3d7d], 0x0000000000003d7e bytes on node 0 flags: 0x0
+[    0.010809]  reserved[0x4] [0x000000023fffb000-0x000000023fffffff], 0x0000000000005000 bytes flags: 0x0
+[    0.010810]  reserved[0x5] [0x000000043fff9000-0x000000043fffdfff], 0x0000000000005000 bytes flags: 0x0
+[    0.010811]  reserved[0x6] [0x000000043fffe000-0x000000043fffffff], 0x0000000000002000 bytes on node 1 flags: 0x0
 ```
 
 ## 伙伴系统
+内核会为每个NUMA node申请一个管理对象，之后会在每个node下创建各个zone。zone表示内存中的一块范围，有不同的类型。
+- ZONE_DMA：地址段最低的一块内存区域，ISA(Industry Standard Architecture)设备DMA访问
+- ZONE_DMA32：该Zone用于支持32-bits地址总线的DMA设备，只在64-bits系统里才有效
+- ZONE_NORMAL：在X86-64架构下，DMA和DMA32之外的内存全部在NORMAL的Zone里管理
+
+![zone](image-71.png)
+
+在你的机器上，你可以使用通过 zoneinfo 查看到你机器上 zone 的划分，也可以看到每个 zone 下所管理的页面有多少个。
+```shell
+# cat /proc/zoneinfo
+Node 0, zone      DMA
+    pages free     3973
+        managed  3973
+Node 0, zone    DMA32
+    pages free     390390
+        managed  427659
+Node 0, zone   Normal
+    pages free     15021616
+        managed  15990165
+Node 1, zone   Normal
+    pages free     16012823
+        managed  16514393                        
+```
+![alt text](image-72.png)
+
+在Linux系统中，所有的node信息是保存在node_data全局数组中的。node在内核中的结构体是struct pglist_data。
+```c
+// file:arch/x86/mm/numa.c
+struct pglist_data * node_data[MAX_NUMNODES];
+
+// file:include/linux/mmzone.h
+typedef struct pglist_data{
+    struct zone node_zones[MAX_NR_ZONES];
+
+    int node_id;
+    ...
+}
+```
+每一个node下会有多个zone,所以在pglist_data结构体内部包含了一个struct zone类型的数组。数组大小是`__MAX_NR_ZONES`,是zone枚举定义中的最大值。
 
 ```c
-
-
+// file:include/linux/mmzone.h
+enum zone_type{
+    ZONE_DMA,
+    ZONE_DMA32,
+    ZONE_NORMAL,
+    ZONE_HIGHMEM,
+    ZONE_MOVABLE,
+    __MAX_NR_ZONES
+};
 ```
+
+
+
+
+![alt text](image-73.png)
 
 ## 参考文献 
 固件架构 - 你们有什么习惯、技巧和最佳实践吗？
@@ -428,3 +601,8 @@ Linux 内核“偷吃”了你的内存！
 https://mp.weixin.qq.com/s/MSlvaSmX2NQIzK10jjLXZg
 
 https://github.com/yanfeizhang/coder-kung-fu/tree/main
+
+Linux 内核是如何感知到硬件上的 NUMA 信息的？
+https://www.51cto.com/article/816762.html
+
+https://mp.weixin.qq.com/s/OR2XB4J76haGc1THeq7WQg
