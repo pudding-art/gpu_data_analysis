@@ -1,7 +1,7 @@
 
 
 
-![alt text](image-67.png)
+
 
 
 Linux内核在刚启动时不知道内存硬件信息，内核必须对整个系统的内存进行初始化，以方便后面的使用。具体过程包括
@@ -579,11 +579,121 @@ enum zone_type{
     __MAX_NR_ZONES
 };
 ```
+在每个zone下面的一个数组free_area管理了绝大部分可用的空闲页面，这个数组是伙伴系统实现的重要数据结构。
+```c
+//file: include/linux/mmzone.h
+#define MAX_ORDER 11
+struct zone {
 
+    // zone的名称
+    const char *name;
+    // 管理zone下面所有页面的伙伴系统
+    free_area   free_area[MAX_ORDER];
+    ......
+}
+```
 
-
+**内核中其实不是只有一个伙伴系统，而是在每个zone下都会有一个struct free_area定义的伙伴系统。** free_area是一个11个元素的数组，在每一个数组分别代表的是空闲可分配连续4K、8K、16K、......、4M内存链表。
 
 ![alt text](image-73.png)
+
+![alt text](image-67.png)
+
+通过`cat /proc/pagetypeinfo`, 你可以看到当前系统里伙伴系统里各个尺寸的可用连续内存块数量。
+
+```shell
+ong@hong-VMware-Virtual-Platform:/etc/kdump$ sudo cat /proc/pagetypeinfo
+Page block order: 9
+Pages per block:  512
+
+Free pages count per migrate type at order       0      1      2      3      4      5      6      7      8      9     10 
+Node    0, zone      DMA, type    Unmovable      0      0      0      1      1      1      1      1      0      1      0 
+Node    0, zone      DMA, type      Movable      0      0      0      0      0      0      0      0      0      1      2 
+Node    0, zone      DMA, type  Reclaimable      0      0      0      0      0      0      0      0      0      0      0 
+Node    0, zone      DMA, type   HighAtomic      0      0      0      0      0      0      0      0      0      0      0 
+Node    0, zone      DMA, type      Isolate      0      0      0      0      0      0      0      0      0      0      0 
+Node    0, zone    DMA32, type    Unmovable      0      1      0      0      1      0      1      0      1      1      0 
+Node    0, zone    DMA32, type      Movable      1      0      0      1      2      2      1      3      2      1    615 
+Node    0, zone    DMA32, type  Reclaimable      0      0      0      0      0      0      0      0      0      0      0 
+Node    0, zone    DMA32, type   HighAtomic      0      0      0      0      0      0      0      0      0      0      0 
+Node    0, zone    DMA32, type      Isolate      0      0      0      0      0      0      0      0      0      0      0 
+Node    0, zone   Normal, type    Unmovable      0      0      2     60     34      0      0      3      0      3      5 
+Node    0, zone   Normal, type      Movable      0      1      0      1      0      1      1      0      1      0   1349 
+Node    0, zone   Normal, type  Reclaimable      1      0      2      2      1      2      0      0      0      0      1 
+Node    0, zone   Normal, type   HighAtomic      0      0      0      0      0      0      0      0      0      0      0 
+Node    0, zone   Normal, type      Isolate      0      0      0      0      0      0      0      0      0      0      0 
+
+Number of blocks type     Unmovable      Movable  Reclaimable   HighAtomic      Isolate 
+Node 0, zone      DMA            3            5            0            0            0 
+Node 0, zone    DMA32            4         1524            0            0            0 
+Node 0, zone   Normal          234         3574           32            0            0 
+```
+
+内核提供分配器函数`alloc_page`到上面的多个链表中寻找<font color=#fad>**可用连续页面**</font>。当内核或用户进程需要物理页的时候，就可以调用`alloc_page`从zone的free_area空闲页面链表中寻找合适的内存块返回。
+```c
+struct page * alloc_pages(gfp_t gfp_mask, unsigned int order)
+```
+alloc_pages是怎么工作的呢？我们举个简单的小例子。假如要申请8K-连续两个页框的内存。为了描述方便，我们先暂时忽略UNMOVEABLE、RELCLAIMABLE等不同类型.
+
+![alt text](image-74.png)
+
+伙伴系统中的伙伴指的是两个内存块，大小相同，地址连续，同属于一个大块区域。
+
+基于伙伴系统的内存分配中，有可能需要将大块内存拆分成两个小伙伴。在释放中，可能会将两个小伙伴合并再次组成更大块的连续内存。
+
+在经过内存检测、memblock 内存分配器构建、页管理机制初始化等步骤后，伙伴管理系统就要登场了。在 `mm_init -> mem_init -> memblock_free_all `中， memblock 开启了它给伙伴系统交接内存的交接仪式。
+
+
+```c
+start_kernel
+-> setup_arch
+---> e820__memory_setup   // 内核把物理内存检测保存从boot_params.e820_table保存到e820_table中，并打印出来
+---> e820__memblock_setup // 根据e820信息构建memblock内存分配器，开启调试能打印
+---> x86_init.paging.pagetable_init（native_pagetable_init）
+-----> paging_init        // 页管理机制的初始化
+->mm_init
+--->mem_init
+-----> memblock_free_all  // 向伙伴系统移交控制权
+```
+
+```c
+
+//file:mm/memblock.c
+void __init memblock_free_all(void)
+{
+ unsigned long pages;
+ ......
+ pages = free_low_memory_core_early();
+ totalram_pages_add(pages);
+}
+```
+具体的释放是在`free_low_memory_core_early`中进行的。值得注意的是，memblock 是**把 reserved 和可用内存是分开来交接的**。这样保证 reserved 内存即使交接给了伙伴系统，伙伴系统也不会把它分配出去给用户程序使用。
+
+```c
+// mm/memblock.c
+static unsigned long __init free_low_memory_core_early(void)
+{
+ // reserve 内存交接
+ memmap_init_reserved_pages();
+
+ // 可用内存交接
+ for_each_free_mem_range(i, NUMA_NO_NODE, MEMBLOCK_NONE, &start, &end,
+    NULL)
+  count += __free_memory_core(start, end); //释放可用内存
+
+ return count;
+}
+```
+在交接完毕后，返回交接的内存页数。这个页数通过`totalram_pages_add`函数添加到一个名为`_totalram_pages`的全局变量中了。
+
+```c
+//file:mm/page_alloc.c
+atomic_long_t _totalram_pages __read_mostly;
+EXPORT_SYMBOL(_totalram_pages);
+```
+
+可用内存部分通过`for_each_free_mem_range`来遍历，然后调用`__free_memory_core`进行释放。接着依次调用`__free_pages_memory -> memblock_free_pages -> __free_pages_core -> free_pages_ok -> __free_one_page`后将页面放到zone的free_area数组中对应的位置上。也就是在这里将原来struct memblock数据结构中的内容按照4KB,8KB等等粒度给分配到pglist->zone->free_area对应的区域上，通过这种数据结构的转换来实现向伙伴系统交接物理内存，而且这个时候已经经历过页管理初始化memblock中也不是大块内存而是一个个4KB的页面。实际上就是换细了粒度同时更新了一批处理函数。
+
 
 ## 参考文献 
 固件架构 - 你们有什么习惯、技巧和最佳实践吗？
