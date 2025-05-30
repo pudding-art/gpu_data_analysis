@@ -409,12 +409,13 @@ Linux并不会讲所有物理内存都交给用户使用。Linux为了维护自�
 
 不仅仅是跨CPU访问存在延时差异，在同一个CPU的不同核上，由于Mesh架构以及存在两个内存控制器的原因，物理核访问不同的内存控制器上的内存条也会有差异，只不过这个差异没有跨CPU差异大。
 
+NUMA特性对性能的影响是比较大的。在不少公司中，对运行的服务进行了NUMA绑定。但是也有不同的声音，任务NUMA可能在全局内存并未用尽的情况下会出现内存分配错误，导致系统抖动。
 
 Linux需要感知到硬件的NUMA信息，获取过程大概分为两步，第一步是内核识别内存所属节点，第二步把NUMA信息关联到自己的memblock初期内存分配器。ACPI中定义了两个表:
 - <font color=#fda>SRAT(System Resource Affinity Table)</font>:表示CPU核和内存的关系，包括有几个node,每个node里有哪几个CPU逻辑核，有哪些内存。
 - <font color=#fda>SLIT(System Locality Information Table)</font>:记录了各个节点之间的距离。
 
-CPU读取以上两个表就快可以获得NUNA系统的CPU和物理内存分布信息。操作系统在启动的时候会执行`setup_arch`函数，会在这个函数中发起NUMA信息初始化。在`initmem_init`中，依次调用了`x86_numa_init`、`numa_init`、`x86_acpi_numa_init`，最后执行到了`acpi_numa_init`函数中来读取ACPI中的SRAT表，获取到各个node中的CPU逻辑核、内存的分布信息。
+CPU读取以上两个表就快可以获得NUNA系统的CPU和物理内存分布信息。操作系统在启动的时候会执行` setup_arch`函数，会在这个函数中发起NUMA信息初始化。在`initmem_init`中，依次调用了`x86_numa_init`、`numa_init`、`x86_acpi_numa_init`，最后执行到了`acpi_numa_init`函数中来读取ACPI中的SRAT表，获取到各个node中的CPU逻辑核、内存的分布信息。
 
 ```c
 //file:arch/x86/kernel/setup.c
