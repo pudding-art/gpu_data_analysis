@@ -1,0 +1,2171 @@
+ ========
+1core
+========
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+70471
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.16     2471.5
+MLC test finished with PID 70499.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.60     2478.1
+MLC test finished with PID 70575.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.07     2478.1
+MLC test finished with PID 70666.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.12     2478.2
+MLC test finished with PID 70752.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.47     2477.8
+MLC test finished with PID 70848.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.09     2477.6
+MLC test finished with PID 70915.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.19     2478.0
+MLC test finished with PID 71011.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  569.19     2478.2
+MLC test finished with PID 71102.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.29     2478.2
+MLC test finished with PID 71186.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  570.39     2478.1
+MLC test finished with PID 71252.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+
+========
+2cores
+========
+
+
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+71887
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  583.18     5520.3
+MLC test finished with PID 71915.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  584.99     6083.2
+MLC test finished with PID 71993.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  585.49     6335.6
+MLC test finished with PID 72091.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  585.03     6084.7
+MLC test finished with PID 72186.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  583.28     5549.0
+MLC test finished with PID 72281.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  584.76     6270.2
+MLC test finished with PID 72346.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  585.22     6255.3
+MLC test finished with PID 72435.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  582.74     5509.0
+MLC test finished with PID 72556.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  583.09     5537.3
+MLC test finished with PID 72654.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  584.92     6201.8
+MLC test finished with PID 72722.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+========
+3cores
+========
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+73150
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  602.60     8235.6
+MLC test finished with PID 73188.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  602.96     8276.1
+MLC test finished with PID 73268.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  603.11     8266.4
+MLC test finished with PID 73358.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  602.68     8247.6
+MLC test finished with PID 73455.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  602.62     8252.6
+MLC test finished with PID 73552.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  602.66     8277.1
+MLC test finished with PID 73678.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  603.23     8286.5
+MLC test finished with PID 73748.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  603.31     8284.1
+MLC test finished with PID 73848.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  603.01     8254.5
+MLC test finished with PID 73940.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  602.86     8266.4
+MLC test finished with PID 74037.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+
+========
+4cores
+========
+
+
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+74468
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  628.75    10739.8
+MLC test finished with PID 74496.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  629.29    10756.1
+MLC test finished with PID 74578.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  629.15    10758.3
+MLC test finished with PID 74680.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  629.20    10757.1
+MLC test finished with PID 74805.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  628.86    10755.4
+MLC test finished with PID 74902.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  630.22    10754.7
+MLC test finished with PID 75001.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  628.97    10756.7
+MLC test finished with PID 75100.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  629.21    10754.5
+MLC test finished with PID 75189.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  628.61    10964.4
+MLC test finished with PID 75288.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  628.43    10997.3
+MLC test finished with PID 75387.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+
+========
+5cores
+========
+wt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+75630
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.37    13621.2
+MLC test finished with PID 75661.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.48    13654.1
+MLC test finished with PID 75745.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.19    13651.7
+MLC test finished with PID 75849.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.33    13644.4
+MLC test finished with PID 75950.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.93    13651.8
+MLC test finished with PID 76051.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.59    13643.1
+MLC test finished with PID 76152.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.40    13647.6
+MLC test finished with PID 76253.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.57    13416.7
+MLC test finished with PID 76384.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.10    13658.2
+MLC test finished with PID 76486.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  648.16    13645.5
+MLC test finished with PID 76587.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+
+
+========
+6cores
+========
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+76981
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.22    16137.3
+MLC test finished with PID 77014.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.41    16151.7
+MLC test finished with PID 77100.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.15    16151.2
+MLC test finished with PID 77206.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.48    16139.3
+MLC test finished with PID 77312.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.32    16159.6
+MLC test finished with PID 77418.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  666.00    16160.0
+MLC test finished with PID 77524.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.99    16133.5
+MLC test finished with PID 77630.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  666.12    16158.8
+MLC test finished with PID 77766.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.39    16138.3
+MLC test finished with PID 77872.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  665.91    16133.2
+MLC test finished with PID 77978.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+
+
+========
+7cores
+========
+
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+78510
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  713.88    18407.5
+MLC test finished with PID 78535.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  713.49    18399.3
+MLC test finished with PID 78643.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  711.40    18432.2
+MLC test finished with PID 78785.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  710.28    18441.7
+MLC test finished with PID 78893.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  710.73    18426.0
+MLC test finished with PID 79001.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  709.68    18436.4
+MLC test finished with PID 79110.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  712.42    18414.7
+MLC test finished with PID 79218.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  711.81    18432.0
+MLC test finished with PID 79328.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  710.48    18448.2
+MLC test finished with PID 79436.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7F000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  711.59    18428.9
+MLC test finished with PID 79555.
+
+========
+8cores
+========
+
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+79873
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  797.56    20016.0
+MLC test finished with PID 79911.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  799.57    20018.7
+MLC test finished with PID 80006.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  796.42    20289.0
+MLC test finished with PID 80116.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  795.56    20258.5
+MLC test finished with PID 80265.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  792.25    20294.5
+MLC test finished with PID 80380.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  791.20    20291.4
+MLC test finished with PID 80490.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  792.51    20290.5
+MLC test finished with PID 80600.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  796.61    20239.0
+MLC test finished with PID 80720.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  791.00    20308.1
+MLC test finished with PID 80835.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  793.19    20282.5
+MLC test finished with PID 80946.
+
+========
+9cores
+========
+
+
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+81147
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  971.30    21113.0
+MLC test finished with PID 81175.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  971.72    21117.6
+MLC test finished with PID 81282.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  973.19    21120.1
+MLC test finished with PID 81404.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  970.42    21143.2
+MLC test finished with PID 81521.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  996.55    20855.3
+MLC test finished with PID 81648.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  992.25    20901.6
+MLC test finished with PID 81770.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  973.72    21101.5
+MLC test finished with PID 81915.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  976.89    21085.7
+MLC test finished with PID 82042.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  975.29    21125.0
+MLC test finished with PID 82167.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x1FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  976.09    21090.7
+MLC test finished with PID 82284.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+
+========
+10cores
+========
+
+wt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+82588
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1391.38   20510.8
+MLC test finished with PID 82616.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1382.26   20628.0
+MLC test finished with PID 82740.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1385.28   20612.2
+MLC test finished with PID 82872.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1394.13   20525.4
+MLC test finished with PID 83016.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1382.84   20631.6
+MLC test finished with PID 83145.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1391.50   20568.8
+MLC test finished with PID 83289.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1388.24   20615.0
+MLC test finished with PID 83447.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1387.70   20587.3
+MLC test finished with PID 83591.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1377.01   20718.9
+MLC test finished with PID 83721.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x3FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1384.79   20607.7
+MLC test finished with PID 83865.
+
+
+========
+11cores
+========
+
+
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+84157
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1601.52   19877.1
+MLC test finished with PID 84185.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1602.34   19848.9
+MLC test finished with PID 84311.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1597.36   19912.5
+MLC test finished with PID 84461.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1595.36   19912.1
+MLC test finished with PID 84608.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1601.21   19856.7
+MLC test finished with PID 84783.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1600.94   19875.3
+MLC test finished with PID 84929.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1601.76   19886.6
+MLC test finished with PID 85076.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1606.13   19810.6
+MLC test finished with PID 85222.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1606.67   19808.4
+MLC test finished with PID 85368.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0x7FF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1598.65   19915.5
+MLC test finished with PID 85509.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
+
+
+========
+12cores
+========
+
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ sudo ./quota_mlc_cxl.sh start_test
+86057
+PID is set successfully!
+Daemon is running. Waiting for start signal...
+CXL test is processing...
+Starting MLC test...
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 10000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1602.32   19572.3
+MLC test finished with PID 86090.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 20000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1605.44   19546.4
+MLC test finished with PID 86214.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 30000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1604.04   19554.5
+MLC test finished with PID 86363.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 40000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1606.74   19525.1
+MLC test finished with PID 86512.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 50000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1606.26   19519.3
+MLC test finished with PID 86660.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 60000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1603.92   19556.4
+MLC test finished with PID 86798.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 70000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1602.56   19561.9
+MLC test finished with PID 86975.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 80000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1605.40   19543.1
+MLC test finished with PID 87123.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 90000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1602.53   19566.3
+MLC test finished with PID 87272.
+===================================
+echo: 写入错误: 无效的参数
+CPU_CFS_QUOTA_IS is 100000
+CPU_CFS_QUOTA_US is set successfully!
+Intel(R) Memory Latency Checker - v3.11a
+Command line parameters: --loaded_latency -d0 -R -b200000 -m0xFFF000 -rand 
+
+Using buffer size of 195.312MiB/thread for reads and an additional 195.312MiB/thread for writes
+
+Measuring Loaded Latencies for the system
+Using all the threads from each core if Hyper-threading is enabled
+Using Read-only traffic type
+Inject  Latency Bandwidth
+Delay   (ns)    MB/sec
+==========================
+ 00000  1603.70   19561.0
+MLC test finished with PID 87420.
+hwt@cxl-2288H-V7:~/workspace/mlc_v3.11a/Linux$ 
