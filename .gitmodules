@@ -1,3 +1,6 @@
 [submodule "FlameGraph"]
 	path = FlameGraph
 	url = ./FlameGraph
+[submodule "ebpf/HTA/ebpf/HTA/wperf"]
+	path = ebpf/HTA/ebpf/HTA/wperf
+	url = https://github.com/OSUSysLab/wPerf.git
