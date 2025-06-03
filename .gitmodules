@@ -4,3 +4,6 @@
 [submodule "ebpf/HTA/ebpf/HTA/wperf"]
 	path = ebpf/HTA/ebpf/HTA/wperf
 	url = https://github.com/OSUSysLab/wPerf.git
+[submodule "ebpf/HTA/wperf"]
+	path = ebpf/HTA/wperf
+	url = https://github.com/OSUSysLab/wPerf.git
